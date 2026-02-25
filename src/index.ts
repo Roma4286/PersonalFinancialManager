@@ -1,6 +1,6 @@
-import * as fs from "node:fs";
+import * as fs from 'node:fs';
 
-type TransactionType = "income" | "expense";
+type TransactionType = 'income' | 'expense';
 
 type Transaction = {
   id: number;
@@ -13,43 +13,36 @@ type Transaction = {
 class FinancialAnalyzer {
   public data: Transaction[] = [];
 
-  constructor(data: Transaction[]) {
+  constructor(data: unknown) {
     this.data = this.parse(data);
   }
 
-  Amountformatting(amount: number) {
-    return new Intl.NumberFormat("ja-JP", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  }
-
   isTransaction(value: unknown): value is Transaction {
-    if (typeof value !== "object" || value === null) return false;
+    if (typeof value !== 'object' || value === null) return false;
 
     const obj = value as Record<string, unknown>;
 
     let date: Date = new Date();
-    if (typeof obj.date === "string") {
+    if (typeof obj.date === 'string') {
       date = new Date(obj.date);
     }
 
     return (
-      typeof obj.id === "number" &&
-      typeof obj.amount === "number" &&
+      typeof obj.id === 'number' &&
+      typeof obj.amount === 'number' &&
       !Number.isNaN(date.valueOf()) &&
-      typeof obj.category === "string" &&
-      (obj.type === "income" || obj.type === "expense")
+      typeof obj.category === 'string' &&
+      (obj.type === 'income' || obj.type === 'expense')
     );
   }
 
   parse(data: unknown): Transaction[] {
     if (!Array.isArray(data)) {
-      throw new Error("Input data must be an array");
+      throw new Error('Input data must be an array');
     }
 
     if (!data.every((item) => this.isTransaction(item))) {
-      throw new Error("Data is not valid");
+      throw new Error('Data is not valid');
     }
 
     return data.map((item) => ({
@@ -59,9 +52,9 @@ class FinancialAnalyzer {
   }
 
   private formatAmount(amount: number) {
-    return new Intl.NumberFormat("ja-JP", {
-      style: "currency",
-      currency: "USD",
+    return new Intl.NumberFormat('ja-JP', {
+      style: 'currency',
+      currency: 'USD',
     }).format(amount);
   }
 
@@ -69,42 +62,48 @@ class FinancialAnalyzer {
     return this.data.filter((transaction) => transaction.type === type);
   }
 
-  calculateTotalBalance(): string {
-    const totalIncome = this.getByType("income").reduce(
+  private calculateTotalBalance(): number {
+    const totalIncome = this.getByType('income').reduce(
       (accumulator, currentValue) => accumulator + currentValue.amount,
-      0,
+      0
     );
-    const totalExpense = this.getByType("expense").reduce(
+    const totalExpense = this.getByType('expense').reduce(
       (accumulator, currentValue) => accumulator + currentValue.amount,
-      0,
+      0
     );
-    return this.formatAmount(totalIncome - totalExpense);
+    return totalIncome - totalExpense;
+  }
+
+  getTotalBalance(): string {
+    return this.formatAmount(this.calculateTotalBalance());
   }
 
   getCategoryBreakdown(): Record<string, number> {
-    return this.getByType("expense").reduce<Record<string, number>>(
+    return this.getByType('expense').reduce<Record<string, number>>(
       (accumulator, currentValue) => {
         accumulator[currentValue.category] =
           (accumulator[currentValue.category] ?? 0) + currentValue.amount;
         return accumulator;
       },
-      {},
+      {}
     );
   }
 
   getMostExpensiveTransaction(): Transaction | undefined {
-    return this.getByType("expense").sort((a, b) => b.amount - a.amount)[0];
+    return [...this.getByType('expense')].sort(
+      (a, b) => b.amount - a.amount
+    )[0];
   }
 }
 
 function main(fileName: string) {
   const analyzer = new FinancialAnalyzer(
-    JSON.parse(fs.readFileSync(fileName, { encoding: "utf-8" })),
+    JSON.parse(fs.readFileSync(fileName, { encoding: 'utf-8' }))
   );
 
-  console.log(analyzer.calculateTotalBalance());
+  console.log(analyzer.getTotalBalance());
   console.log(analyzer.getCategoryBreakdown());
   console.log(analyzer.getMostExpensiveTransaction());
 }
 
-main("transactions.json");
+main('transactions.json');
