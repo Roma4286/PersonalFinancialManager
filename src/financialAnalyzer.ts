@@ -1,5 +1,3 @@
-import * as fs from 'node:fs';
-
 type TransactionType = 'income' | 'expense';
 
 type Transaction = {
@@ -96,14 +94,4 @@ class FinancialAnalyzer {
   }
 }
 
-function main(fileName: string) {
-  const analyzer = new FinancialAnalyzer(
-    JSON.parse(fs.readFileSync(fileName, { encoding: 'utf-8' }))
-  );
-
-  console.log(analyzer.getTotalBalance());
-  console.log(analyzer.getCategoryBreakdown());
-  console.log(analyzer.getMostExpensiveTransaction());
-}
-
-main('transactions.json');
+export default FinancialAnalyzer;
