@@ -74,7 +74,7 @@ class FinancialAnalyzer {
 
   getTransactions(id: number | undefined = undefined): Transaction[] {
     if (typeof id === 'number') {
-      return this.data.filter(t => t.id === id);
+      return this.data.filter((t) => t.id === id);
     }
 
     return this.data;
@@ -102,9 +102,24 @@ class FinancialAnalyzer {
   }
 
   deleteTransaction(id: number) {
-    const index = this.data.findIndex(t => t.id === id);
+    const index = this.data.findIndex((t) => t.id === id);
 
     this.data.splice(index, 1);
+  }
+
+  createNewTransaction(inf: Omit<Transaction, 'id' | 'date'>) {
+    const last = this.data[this.data.length - 1];
+
+    const newTransaction = {
+      id: last !== undefined ? last.id + 1 : 1,
+      amount: inf.amount,
+      date: new Date(),
+      category: inf.category,
+      type: inf.type,
+    } as Transaction;
+
+    this.data.push(newTransaction);
+    return newTransaction;
   }
 }
 

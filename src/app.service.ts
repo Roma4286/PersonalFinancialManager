@@ -1,35 +1,35 @@
 import { Injectable } from '@nestjs/common';
 import FinancialAnalyzer from './financialAnalyzer.js';
 import * as fs from 'node:fs';
+import type { TransactionDto } from './dto/create-transaction.js';
 
 @Injectable()
 export class AppService {
+  private analyzer: FinancialAnalyzer;
+  constructor() {
+    this.analyzer = new FinancialAnalyzer(
+      JSON.parse(fs.readFileSync('transactions.json', { encoding: 'utf-8' }))
+    );
+  }
 
-    private analyzer: FinancialAnalyzer;
-    constructor() {
-        this.analyzer = new FinancialAnalyzer(
-            JSON.parse(fs.readFileSync('transactions.json', { encoding: 'utf-8' }))
-        );
-    }
+  getAllTransactions() {
+    return this.analyzer.getTransactions();
+  }
 
-    getAllTransactions() {
-        return this.analyzer.getTransactions();
-    }
+  getOneTransaction(transactionId: number) {
+    return this.analyzer.getTransactions(transactionId);
+  }
 
-    getOneTransaction(transactionId: number) {
-        return this.analyzer.getTransactions(transactionId)
-    }
+  getBalance() {
+    return [this.analyzer.getTotalBalance()];
+  }
 
-    getBalance() {
-        return [this.analyzer.getTotalBalance()];
-    }
+  createNewTransaction(dto: TransactionDto) {
+    return this.analyzer.createNewTransaction(dto);
+  }
 
-    createNewTransaction() {
-        return []
-    }
-
-    deleteTransaction(transactionId: number) {
-        this.analyzer.deleteTransaction(transactionId);
-        return []
-    }
+  deleteTransaction(transactionId: number) {
+    this.analyzer.deleteTransaction(transactionId);
+    return [];
+  }
 }
