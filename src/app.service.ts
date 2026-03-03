@@ -11,7 +11,25 @@ export class AppService {
             JSON.parse(fs.readFileSync('transactions.json', { encoding: 'utf-8' }))
         );
     }
+
+    getAllTransactions() {
+        return this.analyzer.getTransactions();
+    }
+
+    getOneTransaction(transactionId: number) {
+        return this.analyzer.getTransactions(transactionId)
+    }
+
     getBalance() {
         return [this.analyzer.getTotalBalance()];
+    }
+
+    createNewTransaction() {
+        return []
+    }
+
+    deleteTransaction(transactionId: number) {
+        this.analyzer.deleteTransaction(transactionId);
+        return []
     }
 }

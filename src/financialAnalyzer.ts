@@ -72,6 +72,14 @@ class FinancialAnalyzer {
     return totalIncome - totalExpense;
   }
 
+  getTransactions(id: number | undefined = undefined): Transaction[] {
+    if (typeof id === 'number') {
+      return this.data.filter(t => t.id === id);
+    }
+
+    return this.data;
+  }
+
   getTotalBalance(): string {
     return this.formatAmount(this.calculateTotalBalance());
   }
@@ -91,6 +99,12 @@ class FinancialAnalyzer {
     return [...this.getByType('expense')].sort(
       (a, b) => b.amount - a.amount
     )[0];
+  }
+
+  deleteTransaction(id: number) {
+    const index = this.data.findIndex(t => t.id === id);
+
+    this.data.splice(index, 1);
   }
 }
 
