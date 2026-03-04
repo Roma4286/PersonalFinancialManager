@@ -101,8 +101,11 @@ class FinancialAnalyzer {
     )[0];
   }
 
-  deleteTransaction(id: number) {
+  deleteTransaction(id: number): void | -1 {
     const index = this.data.findIndex((t) => t.id === id);
+    if (index === -1) {
+      return -1;
+    }
 
     this.data.splice(index, 1);
   }

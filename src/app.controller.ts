@@ -4,11 +4,11 @@ import {
   Get,
   Post,
   Param,
-  ParseIntPipe,
   Body,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { AppService } from './app.service.js';
-import type { TransactionDto } from './dto/create-transaction.js';
+import { TransactionDto } from './dto/transaction.dto.js';
 
 @Controller('/transactions')
 export class AppController {
@@ -19,14 +19,14 @@ export class AppController {
     return this.appService.getAllTransactions();
   }
 
-  @Get(':id')
-  getOneTransaction(@Param('id', ParseIntPipe) id: number) {
-    return this.appService.getOneTransaction(id);
-  }
-
   @Get('/stats')
   getBalance() {
     return this.appService.getBalance();
+  }
+
+  @Get('/:id')
+  getOneTransaction(@Param('id', ParseIntPipe) id: number) {
+    return this.appService.getOneTransaction(id);
   }
 
   @Post('/')
