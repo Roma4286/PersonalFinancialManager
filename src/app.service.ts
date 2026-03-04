@@ -3,9 +3,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import FinancialAnalyzer from './financialAnalyzer.js';
+import { FinancialAnalyzer } from './financialAnalyzer.js';
 import * as fs from 'node:fs';
-import type { TransactionDto } from './dto/transaction.dto.js';
+import { TransactionDto } from './dto/transaction.dto.js';
 
 @Injectable()
 export class AppService {
@@ -31,10 +31,12 @@ export class AppService {
         `Transaction with id ${transactionId} not found`
       );
     }
+
+    return response;
   }
 
   getBalance() {
-    return [this.analyzer.getTotalBalance()];
+    return this.analyzer.getTotalBalance();
   }
 
   createNewTransaction(dto: TransactionDto) {
