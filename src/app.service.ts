@@ -1,11 +1,7 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { FinancialAnalyzer } from './financialAnalyzer.js';
 import * as fs from 'node:fs';
-import { TransactionDto } from './dto/transaction.dto.js';
+import { TransactionDto } from './dto/create-transaction.dto.js';
 
 @Injectable()
 export class AppService {
@@ -21,18 +17,11 @@ export class AppService {
   }
 
   getOneTransaction(transactionId: number) {
-    if (transactionId < 0) {
-      throw new BadRequestException('id must be >= 0');
+    const result = this.analyzer.getTransactions(transactionId)[0];
+    if (result === undefined) {
+      return null;
     }
-    const response = this.analyzer.getTransactions(transactionId);
-
-    if (response.length === 0) {
-      throw new NotFoundException(
-        `Transaction with id ${transactionId} not found`
-      );
-    }
-
-    return response;
+    return result;
   }
 
   getBalance() {
@@ -40,22 +29,10 @@ export class AppService {
   }
 
   createNewTransaction(dto: TransactionDto) {
-    if (dto.amount <= 0) {
-      throw new BadRequestException('Amount must be > 0');
-    }
     return this.analyzer.createNewTransaction(dto);
   }
 
-  deleteTransaction(transactionId: number) {
-    if (transactionId < 0) {
-      throw new BadRequestException('id must be >= 0');
-    }
-
-    if (this.analyzer.deleteTransaction(transactionId) === -1) {
-      throw new NotFoundException(
-        `Transaction with id ${transactionId} not found`
-      );
-    }
-    return [];
+  deleteTransaction(transactionId: number): -1 | void {
+    return this.analyzer.deleteTransaction(transactionId);
   }
 }

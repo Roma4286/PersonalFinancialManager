@@ -1,4 +1,4 @@
-import { IsEnum, IsNumber, IsString } from 'class-validator';
+import { IsEnum, IsNumber, IsString, Min } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export enum TransactionType {
@@ -9,6 +9,7 @@ export enum TransactionType {
 export class TransactionDto {
     @ApiProperty()
     @IsNumber()
+    @Min(0, {message: "Amount must be > 0"})
     readonly amount!: number;
     
     @ApiProperty()
@@ -19,3 +20,4 @@ export class TransactionDto {
     @IsEnum(TransactionType)
     readonly type!: 'income' | 'expense';
 }
+ 

@@ -74,7 +74,6 @@ class FinancialAnalyzer {
 
   getTransactions(id: number | undefined = undefined): Transaction[] {
     if (typeof id === 'number') {
-      console.log(this.data.filter((t) => t.id === id));
       return this.data.filter((t) => t.id === id);
     }
 

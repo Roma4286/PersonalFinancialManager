@@ -6,7 +6,7 @@ export enum TransactionType {
     EXPENSE = 'expense',
 }
 
-export class TypeTransactionResponse {
+export class TransactionResponse {
     @ApiProperty()
     @IsNumber()
     id!: number;
@@ -28,7 +28,8 @@ export class TypeTransactionResponse {
     type!: 'income' | 'expense';
 }
 
-export class BalanceResponseDto {
-    @ApiProperty({ example: "$4,950.00" })
+export class BalanceResponse {
+    @ApiProperty()
+    @IsString()
     totalBalance!: string;
 }
