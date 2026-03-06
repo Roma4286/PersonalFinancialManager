@@ -8,7 +8,7 @@ export class AppService {
   private analyzer: FinancialAnalyzer;
   constructor() {
     this.analyzer = new FinancialAnalyzer(
-      JSON.parse(fs.readFileSync('transactions.json', { encoding: 'utf-8' }))
+      JSON.parse(fs.readFileSync('transactions.json', { encoding: 'utf-8' })),
     );
   }
 

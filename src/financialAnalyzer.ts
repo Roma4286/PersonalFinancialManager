@@ -63,11 +63,11 @@ class FinancialAnalyzer {
   private calculateTotalBalance(): number {
     const totalIncome = this.getByType('income').reduce(
       (accumulator, currentValue) => accumulator + currentValue.amount,
-      0
+      0,
     );
     const totalExpense = this.getByType('expense').reduce(
       (accumulator, currentValue) => accumulator + currentValue.amount,
-      0
+      0,
     );
     return totalIncome - totalExpense;
   }
@@ -91,13 +91,13 @@ class FinancialAnalyzer {
           (accumulator[currentValue.category] ?? 0) + currentValue.amount;
         return accumulator;
       },
-      {}
+      {},
     );
   }
 
   getMostExpensiveTransaction(): Transaction | undefined {
     return [...this.getByType('expense')].sort(
-      (a, b) => b.amount - a.amount
+      (a, b) => b.amount - a.amount,
     )[0];
   }
 

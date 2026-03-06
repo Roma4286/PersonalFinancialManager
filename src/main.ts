@@ -20,10 +20,10 @@ async function main() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
-    })
+    }),
   );
 
-  app.listen(PORT, () => console.log(`Server started on port: ${PORT}`));
+  await app.listen(PORT, () => console.log(`Server started on port: ${PORT}`));
 }
 
-main();
+main().catch((err) => console.log(err));
