@@ -18,6 +18,16 @@
     "moduleDetection": "force",
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "strictPropertyInitialization": false,
+    "plugins": [
+      { "name": "@nestjs/swagger" }
+    ]
+    // "target": "ES2020",
+    // "module": "commonjs"
   }
 }
