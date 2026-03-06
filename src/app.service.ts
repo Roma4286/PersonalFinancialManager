@@ -1,23 +1,21 @@
 import { Injectable } from '@nestjs/common';
-import { FinancialAnalyzer } from './financialAnalyzer.js';
-import * as fs from 'node:fs';
+import { FinancialAnalyzerService } from './modules/financial-analyzer/financial-analyzer.service.ts';
 import { TransactionDto } from './dto/create-transaction.dto.js';
+import { StorageService } from './modules/storage/storage.service.ts';
 
 @Injectable()
 export class AppService {
-  private analyzer: FinancialAnalyzer;
-  constructor() {
-    this.analyzer = new FinancialAnalyzer(
-      JSON.parse(fs.readFileSync('transactions.json', { encoding: 'utf-8' })),
-    );
-  }
+  constructor(
+    private analyzer: FinancialAnalyzerService,
+    private dataStorage: StorageService,
+  ) {}
 
   getAllTransactions() {
-    return this.analyzer.getTransactions();
+    return this.dataStorage.getTransactions();
   }
 
   getOneTransaction(transactionId: number) {
-    const result = this.analyzer.getTransactions(transactionId)[0];
+    const result = this.dataStorage.getTransactionById(transactionId);
     if (result === undefined) {
       return null;
     }
@@ -25,14 +23,17 @@ export class AppService {
   }
 
   getBalance() {
-    return this.analyzer.getTotalBalance();
+    return this.analyzer.calculateTotalBalance(
+      this.dataStorage.getTransactionsByType('income'),
+      this.dataStorage.getTransactionsByType('expense'),
+    );
   }
 
   createNewTransaction(dto: TransactionDto) {
-    return this.analyzer.createNewTransaction(dto);
+    return this.dataStorage.createNewTransaction(dto);
   }
 
   deleteTransaction(transactionId: number): -1 | void {
-    return this.analyzer.deleteTransaction(transactionId);
+    return this.dataStorage.deleteTransaction(transactionId);
   }
 }
