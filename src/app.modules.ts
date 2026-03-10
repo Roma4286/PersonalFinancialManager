@@ -1,12 +1,8 @@
 import { Module } from '@nestjs/common';
-import { AppService } from './app.service.js';
-import { AppController } from './app.controller.js';
-import { StorageModule } from './modules/storage/storage.module.ts';
-import { FinancialAnalyzerModule } from './modules/financial-analyzer/financial-analyzer.module.ts';
+import { StorageModule } from './modules/transaction/storage/storage.module';
+import { TransactionModule } from './modules/transaction/transaction.module';
 
 @Module({
-  controllers: [AppController],
-  providers: [AppService],
-  imports: [StorageModule, FinancialAnalyzerModule],
+  imports: [StorageModule, TransactionModule],
 })
 export class AppModules {}

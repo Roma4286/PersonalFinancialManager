@@ -1,16 +1,8 @@
 import { Injectable } from '@nestjs/common';
-type TransactionType = 'income' | 'expense';
-
-export type Transaction = {
-  id: number;
-  amount: number;
-  date: Date;
-  category: string;
-  type: TransactionType;
-};
+import type { Transaction, TransactionType } from '../transaction.type';
 
 @Injectable()
-export class StorageService {
+export class StorageRepository {
   private data: Transaction[] = [
     {
       id: 1,

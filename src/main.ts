@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModules } from './app.modules.js';
+import { AppModules } from './app.modules';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
@@ -26,4 +26,4 @@ async function main() {
   await app.listen(PORT, () => console.log(`Server started on port: ${PORT}`));
 }
 
-main().catch((err) => console.log(err));
+main().catch((err) => console.error(err));

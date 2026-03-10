@@ -9,19 +9,19 @@ import {
   HttpStatus,
   NotFoundException,
 } from '@nestjs/common';
-import { AppService } from './app.service.js';
+import { TransactionService } from './transaction.service';
 import { ApiResponse } from '@nestjs/swagger';
 import {
   BalanceResponse,
   TransactionResponse,
-} from './dto/transaction-response.dto.js';
-import { TransactionDto } from './dto/create-transaction.dto.js';
-import { FindTransactionDto } from './dto/find-transaction.dto.js';
-import { RemoveTransactionDto } from './dto/remove-transaction.dto.js';
+} from './dto/transaction-response.dto';
+import { CreateTransactionDto } from './dto/create-transaction.dto';
+import { FindTransactionDto } from './dto/find-transaction.dto';
+import { RemoveTransactionDto } from './dto/remove-transaction.dto';
 
 @Controller('/transactions')
-export class AppController {
-  constructor(private appService: AppService) {}
+export class TransactionController {
+  constructor(private transactionService: TransactionService) {}
 
   @Get('/')
   @ApiResponse({
@@ -31,7 +31,7 @@ export class AppController {
     isArray: true,
   })
   getAllTransactions() {
-    return this.appService.getAllTransactions();
+    return this.transactionService.getAllTransactions();
   }
 
   @Get('/stats')
@@ -41,7 +41,7 @@ export class AppController {
     type: BalanceResponse,
   })
   getBalance() {
-    return { totalBalance: this.appService.getBalance() };
+    return { totalBalance: this.transactionService.getBalance() };
   }
 
   @Get('/:id')
@@ -52,7 +52,7 @@ export class AppController {
   })
   @ApiResponse({ status: 404, description: 'Invalide Id.' })
   getOneTransaction(@Param() params: FindTransactionDto) {
-    const response = this.appService.getOneTransaction(params.id);
+    const response = this.transactionService.getOneTransaction(params.id);
 
     if (response === null) {
       throw new NotFoundException(`Transaction with id ${params.id} not found`);
@@ -68,8 +68,8 @@ export class AppController {
     type: TransactionResponse,
   })
   @ApiResponse({ status: 400, description: 'Bad Request.' })
-  createNewTransaction(@Body() transactionDto: TransactionDto) {
-    return this.appService.createNewTransaction(transactionDto);
+  createNewTransaction(@Body() transactionDto: CreateTransactionDto) {
+    return this.transactionService.createNewTransaction(transactionDto);
   }
 
   @Delete('/:id')
@@ -80,7 +80,7 @@ export class AppController {
   })
   @ApiResponse({ status: 404, description: 'Invalide Id.' })
   deleteTransaction(@Param() params: RemoveTransactionDto) {
-    const response = this.appService.deleteTransaction(params.id);
+    const response = this.transactionService.deleteTransaction(params.id);
 
     if (response === -1) {
       throw new NotFoundException(`Transaction with id ${params.id} not found`);
