@@ -1,17 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { StorageRepository } from './storage/storage.repository';
+import { TransactionType } from './transaction.entity';
 
 @Injectable()
 export class TransactionService {
-  constructor(private TransactionStorage: StorageRepository) {}
+  constructor(private transactionStorage: StorageRepository) {}
 
   getAllTransactions() {
-    return this.TransactionStorage.getTransactions();
+    return this.transactionStorage.getTransactions();
   }
 
-  getOneTransaction(transactionId: number) {
-    const result = this.TransactionStorage.getTransactionById(transactionId);
+  getTransactionById(transactionId: number) {
+    const result = this.transactionStorage.getTransactionById(transactionId);
     if (result === undefined) {
       return null;
     }
@@ -19,8 +20,12 @@ export class TransactionService {
   }
 
   getBalance() {
-    const income = this.TransactionStorage.getTransactionsByType('income');
-    const expense = this.TransactionStorage.getTransactionsByType('expense');
+    const income = this.transactionStorage.getTransactionsByType(
+      TransactionType.INCOME,
+    );
+    const expense = this.transactionStorage.getTransactionsByType(
+      TransactionType.EXPENSE,
+    );
     const totalIncome = income.reduce(
       (accumulator, currentValue) => accumulator + currentValue.amount,
       0,
@@ -33,10 +38,10 @@ export class TransactionService {
   }
 
   createNewTransaction(dto: CreateTransactionDto) {
-    return this.TransactionStorage.createNewTransaction(dto);
+    return this.transactionStorage.createNewTransaction(dto);
   }
 
-  deleteTransaction(transactionId: number): -1 | void {
-    return this.TransactionStorage.deleteTransaction(transactionId);
+  deleteTransaction(transactionId: number): void | false {
+    return this.transactionStorage.deleteTransaction(transactionId);
   }
 }

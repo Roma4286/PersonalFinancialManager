@@ -11,13 +11,11 @@ import {
 } from '@nestjs/common';
 import { TransactionService } from './transaction.service';
 import { ApiResponse } from '@nestjs/swagger';
-import {
-  BalanceResponse,
-  TransactionResponse,
-} from './dto/transaction-response.dto';
+import { BalanceResponse } from './dto/transaction-response.dto';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
-import { FindTransactionDto } from './dto/find-transaction.dto';
+import { GetTransactionDto } from './dto/get-transaction.dto';
 import { RemoveTransactionDto } from './dto/remove-transaction.dto';
+import { Transaction } from './transaction.entity';
 
 @Controller('/transactions')
 export class TransactionController {
@@ -27,7 +25,7 @@ export class TransactionController {
   @ApiResponse({
     status: 200,
     description: 'Retrieve all items.',
-    type: TransactionResponse,
+    type: Transaction,
     isArray: true,
   })
   getAllTransactions() {
@@ -48,11 +46,11 @@ export class TransactionController {
   @ApiResponse({
     status: 200,
     description: 'Retrieve one item.',
-    type: TransactionResponse,
+    type: Transaction,
   })
   @ApiResponse({ status: 404, description: 'Invalide Id.' })
-  getOneTransaction(@Param() params: FindTransactionDto) {
-    const response = this.transactionService.getOneTransaction(params.id);
+  getOneTransaction(@Param() params: GetTransactionDto) {
+    const response = this.transactionService.getTransactionById(params.id);
 
     if (response === null) {
       throw new NotFoundException(`Transaction with id ${params.id} not found`);
@@ -65,7 +63,7 @@ export class TransactionController {
   @ApiResponse({
     status: 201,
     description: 'The record has been successfully created.',
-    type: TransactionResponse,
+    type: Transaction,
   })
   @ApiResponse({ status: 400, description: 'Bad Request.' })
   createNewTransaction(@Body() transactionDto: CreateTransactionDto) {
@@ -82,7 +80,7 @@ export class TransactionController {
   deleteTransaction(@Param() params: RemoveTransactionDto) {
     const response = this.transactionService.deleteTransaction(params.id);
 
-    if (response === -1) {
+    if (!response) {
       throw new NotFoundException(`Transaction with id ${params.id} not found`);
     }
   }

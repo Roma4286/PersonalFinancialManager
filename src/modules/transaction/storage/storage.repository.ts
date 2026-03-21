@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import type { Transaction, TransactionType } from '../transaction.type';
+import { Transaction, TransactionType } from '../transaction.entity';
+import { CreateTransactionDto } from '../dto/create-transaction.dto';
 
 @Injectable()
 export class StorageRepository {
@@ -9,19 +10,19 @@ export class StorageRepository {
       amount: 5000,
       date: new Date('2024-01-01'),
       category: 'Salary',
-      type: 'income',
+      type: TransactionType.INCOME,
     },
     {
       id: 2,
       amount: 50,
       date: new Date('2024-01-02'),
       category: 'Food',
-      type: 'expense',
+      type: TransactionType.EXPENSE,
     },
   ];
 
   getTransactions(): Transaction[] {
-    return [...this.data];
+    return structuredClone(this.data);
   }
 
   getTransactionById(id: number): Transaction | null {
@@ -29,27 +30,30 @@ export class StorageRepository {
   }
 
   getTransactionsByType(type: TransactionType): Transaction[] {
-    return this.data.filter((transaction) => transaction.type === type);
+    return structuredClone(
+      this.data.filter((transaction) => transaction.type === type),
+    );
   }
 
-  deleteTransaction(id: number): void | -1 {
+  deleteTransaction(id: number): void | false {
     const index = this.data.findIndex((t) => t.id === id);
     if (index === -1) {
-      return -1;
+      return false;
     }
 
     this.data.splice(index, 1);
   }
 
-  createNewTransaction(inf: Omit<Transaction, 'id' | 'date'>) {
-    const last = this.data[this.data.length - 1];
+  createNewTransaction(newTransactionParams: CreateTransactionDto) {
+    const last =
+      this.data.length !== 0 ? Math.max(...this.data.map((t) => t.id)) : 0;
 
     const newTransaction = {
-      id: last !== undefined ? last.id + 1 : 1,
-      amount: inf.amount,
+      id: last + 1,
+      amount: newTransactionParams.amount,
       date: new Date(),
-      category: inf.category,
-      type: inf.type,
+      category: newTransactionParams.category,
+      type: newTransactionParams.type,
     } as Transaction;
 
     this.data.push(newTransaction);
