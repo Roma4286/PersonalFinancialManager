@@ -1,11 +1,11 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModules } from './app.modules';
+import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function main() {
   const PORT = 3000;
-  const app = await NestFactory.create(AppModules);
+  const app = await NestFactory.create(AppModule);
 
   const config = new DocumentBuilder()
     .setTitle('Expense Tracking API')

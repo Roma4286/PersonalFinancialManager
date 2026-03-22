@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { Transaction, TransactionType } from '../transaction.entity';
-import { CreateTransactionDto } from '../dto/create-transaction.dto';
+import { Transaction, TransactionType } from './transaction.entity';
+import { CreateTransactionDto } from './dto/create-transaction.dto';
 
 @Injectable()
-export class StorageRepository {
+export class TransactionRepository {
   private data: Transaction[] = [
     {
       id: 1,
@@ -20,13 +20,14 @@ export class StorageRepository {
       type: TransactionType.EXPENSE,
     },
   ];
+  private lastId = this.data.at(-1)?.id ?? 0;
 
   getTransactions(): Transaction[] {
     return structuredClone(this.data);
   }
 
   getTransactionById(id: number): Transaction | null {
-    return this.data.find((t) => t.id === id) ?? null;
+    return structuredClone(this.data.find((t) => t.id === id)) ?? null;
   }
 
   getTransactionsByType(type: TransactionType): Transaction[] {
@@ -35,21 +36,19 @@ export class StorageRepository {
     );
   }
 
-  deleteTransaction(id: number): void | false {
+  deleteTransaction(id: number): boolean {
     const index = this.data.findIndex((t) => t.id === id);
     if (index === -1) {
       return false;
     }
 
     this.data.splice(index, 1);
+    return true;
   }
 
   createNewTransaction(newTransactionParams: CreateTransactionDto) {
-    const last =
-      this.data.length !== 0 ? Math.max(...this.data.map((t) => t.id)) : 0;
-
     const newTransaction = {
-      id: last + 1,
+      id: ++this.lastId,
       amount: newTransactionParams.amount,
       date: new Date(),
       category: newTransactionParams.category,

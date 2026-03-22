@@ -4,4 +4,4 @@ import { TransactionModule } from './modules/transaction/transaction.module';
 @Module({
   imports: [TransactionModule],
 })
-export class AppModules {}
+export class AppModule {}

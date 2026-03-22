@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { TransactionController } from './transaction.controller';
 import { TransactionService } from './transaction.service';
-import { StorageRepository } from './storage/storage.repository';
+import { TransactionRepository } from './transaction.repository';
 
 @Module({
   controllers: [TransactionController],
-  providers: [TransactionService, StorageRepository],
+  providers: [TransactionService, TransactionRepository],
 })
 export class TransactionModule {}

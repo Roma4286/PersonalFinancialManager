@@ -4,9 +4,9 @@ export enum TransactionType {
 }
 
 export class Transaction {
-  id: number;
-  amount: number;
-  date: Date;
-  category: string;
-  type: TransactionType;
+  id!: number;
+  amount!: number;
+  date!: Date;
+  category!: string;
+  type!: TransactionType;
 }

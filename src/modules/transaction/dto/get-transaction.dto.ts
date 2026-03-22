@@ -5,5 +5,5 @@ export class GetTransactionDto {
   @Type(() => Number)
   @IsNumber()
   @Min(1, { message: 'id must be greater than or equal to 0' })
-  readonly id: number;
+  readonly id!: number;
 }

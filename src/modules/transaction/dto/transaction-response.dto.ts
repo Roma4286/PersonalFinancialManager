@@ -1,3 +1,3 @@
 export class BalanceResponse {
-  totalBalance: string;
+  totalBalance!: string;
 }
