@@ -48,7 +48,7 @@ export class TransactionController {
     description: 'Retrieve one item.',
     type: Transaction,
   })
-  @ApiResponse({ status: 404, description: 'Invalide Id.' })
+  @ApiResponse({ status: 404, description: 'Invalid Id.' })
   getOneTransaction(@Param() params: GetTransactionDto) {
     const response = this.transactionService.getTransactionById(params.id);
 
@@ -76,7 +76,7 @@ export class TransactionController {
     status: 204,
     description: 'Remove transaction.',
   })
-  @ApiResponse({ status: 404, description: 'Invalide Id.' })
+  @ApiResponse({ status: 404, description: 'Invalid Id.' })
   deleteTransaction(@Param() params: RemoveTransactionDto) {
     const response = this.transactionService.deleteTransaction(params.id);
 

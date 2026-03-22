@@ -47,15 +47,15 @@ export class TransactionRepository {
   }
 
   createNewTransaction(newTransactionParams: CreateTransactionDto) {
-    const newTransaction = {
+    const newTransaction: Transaction = {
       id: ++this.lastId,
       amount: newTransactionParams.amount,
       date: new Date(),
       category: newTransactionParams.category,
       type: newTransactionParams.type,
-    } as Transaction;
+    };
 
     this.data.push(newTransaction);
-    return newTransaction;
+    return structuredClone(newTransaction);
   }
 }

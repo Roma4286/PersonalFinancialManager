@@ -30,7 +30,7 @@ export class TransactionService {
       (accumulator, currentValue) => accumulator + currentValue.amount,
       0,
     );
-    return totalIncome - totalExpense;
+    return (totalIncome - totalExpense).toString();
   }
 
   createNewTransaction(dto: CreateTransactionDto) {

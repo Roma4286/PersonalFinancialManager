@@ -1,9 +1,9 @@
-import { IsEnum, IsNumber, IsString, Min } from 'class-validator';
+import { IsEnum, IsNumber, IsPositive, IsString } from 'class-validator';
 import { TransactionType } from '../transaction.entity';
 
 export class CreateTransactionDto {
   @IsNumber()
-  @Min(0, { message: 'Amount must be > 0' })
+  @IsPositive({ message: 'Amount must be > 0' })
   readonly amount!: number;
 
   @IsString()
