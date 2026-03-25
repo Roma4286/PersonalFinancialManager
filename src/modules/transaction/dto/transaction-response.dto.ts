@@ -1,3 +1,3 @@
 export class BalanceResponse {
-  totalBalance!: number;
+  readonly totalBalance!: number;
 }
