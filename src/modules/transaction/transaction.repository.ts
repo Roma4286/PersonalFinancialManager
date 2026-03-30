@@ -26,7 +26,7 @@ export class TransactionRepository {
     return await this.prisma.transactions.findMany({
       where: {
         category: {
-          type: type, // фильтр по типу категории
+          type: type,
         },
       },
     });

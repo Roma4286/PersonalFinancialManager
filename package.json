@@ -9,7 +9,8 @@
     "lint": "npx eslint . ",
     "lint:fix": "npx eslint . --fix",
     "docker:start": "docker-compose up -d",
-    "docker:stop": "docker-compose down -v"
+    "docker:stop": "docker-compose down -v",
+    "prisma:seed": "tsx prisma/seed.ts"
   },
   "keywords": [],
   "author": "",
