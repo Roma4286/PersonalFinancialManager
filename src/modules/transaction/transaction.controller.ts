@@ -28,8 +28,8 @@ export class TransactionController {
     type: Transaction,
     isArray: true,
   })
-  getAllTransactions() {
-    return this.transactionService.getAllTransactions();
+  async getAllTransactions() {
+    return await this.transactionService.getAllTransactions();
   }
 
   @Get('/stats')
@@ -38,8 +38,8 @@ export class TransactionController {
     description: 'Financial Summary.',
     type: BalanceResponse,
   })
-  getBalance() {
-    return { totalBalance: this.transactionService.getBalance() };
+  async getBalance() {
+    return { totalBalance: await this.transactionService.getBalance() };
   }
 
   @Get('/:id')
@@ -49,8 +49,10 @@ export class TransactionController {
     type: Transaction,
   })
   @ApiResponse({ status: 404, description: 'Invalid Id.' })
-  getOneTransaction(@Param() params: GetTransactionDto) {
-    const response = this.transactionService.getTransactionById(params.id);
+  async getOneTransaction(@Param() params: GetTransactionDto) {
+    const response = await this.transactionService.getTransactionById(
+      params.id,
+    );
 
     if (response === null) {
       throw new NotFoundException(`Transaction with id ${params.id} not found`);
@@ -66,8 +68,8 @@ export class TransactionController {
     type: Transaction,
   })
   @ApiResponse({ status: 400, description: 'Bad Request.' })
-  createNewTransaction(@Body() transactionDto: CreateTransactionDto) {
-    return this.transactionService.createNewTransaction(transactionDto);
+  async createNewTransaction(@Body() transactionDto: CreateTransactionDto) {
+    return await this.transactionService.createNewTransaction(transactionDto);
   }
 
   @Delete('/:id')
@@ -77,8 +79,8 @@ export class TransactionController {
     description: 'Remove transaction.',
   })
   @ApiResponse({ status: 404, description: 'Invalid Id.' })
-  deleteTransaction(@Param() params: RemoveTransactionDto) {
-    const response = this.transactionService.deleteTransaction(params.id);
+  async deleteTransaction(@Param() params: RemoveTransactionDto) {
+    const response = await this.transactionService.deleteTransaction(params.id);
 
     if (!response) {
       throw new NotFoundException(`Transaction with id ${params.id} not found`);

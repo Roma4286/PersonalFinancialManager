@@ -1,61 +1,64 @@
 import { Injectable } from '@nestjs/common';
-import { Transaction, TransactionType } from './transaction.entity';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class TransactionRepository {
-  private data: Transaction[] = [
-    {
-      id: 1,
-      amount: 5000,
-      date: new Date('2024-01-01'),
-      category: 'Salary',
-      type: TransactionType.INCOME,
-    },
-    {
-      id: 2,
-      amount: 50,
-      date: new Date('2024-01-02'),
-      category: 'Food',
-      type: TransactionType.EXPENSE,
-    },
-  ];
-  private lastId = this.data.at(-1)?.id ?? 0;
+  constructor(private prisma: PrismaService) {}
 
-  getTransactions(): Transaction[] {
-    return structuredClone(this.data);
+  async getTransactions() {
+    return await this.prisma.categories.findMany({
+      include: {
+        transaction: true,
+      },
+    });
   }
 
-  getTransactionById(id: number): Transaction | null {
-    return structuredClone(this.data.find((t) => t.id === id)) ?? null;
+  async getTransactionById(id: number) {
+    return await this.prisma.transactions.findUnique({
+      where: {
+        id: id,
+      },
+    });
   }
 
-  getTransactionsByType(type: TransactionType): Transaction[] {
-    return structuredClone(
-      this.data.filter((transaction) => transaction.type === type),
-    );
+  async getTransactionsByType(type: string) {
+    return await this.prisma.transactions.findMany({
+      where: {
+        category: {
+          type: type, // фильтр по типу категории
+        },
+      },
+    });
   }
 
-  deleteTransaction(id: number): boolean {
-    const index = this.data.findIndex((t) => t.id === id);
-    if (index === -1) {
-      return false;
+  async deleteTransactionById(id: number) {
+    const transaction = await this.prisma.transactions.findUnique({
+      where: {
+        id: id,
+      },
+    });
+    if (transaction) {
+      return await this.prisma.transactions.delete({
+        where: { id },
+      });
     }
-
-    this.data.splice(index, 1);
-    return true;
+    return null;
   }
 
-  createNewTransaction(newTransactionParams: CreateTransactionDto) {
-    const newTransaction: Transaction = {
-      id: ++this.lastId,
-      amount: newTransactionParams.amount,
-      date: new Date(),
-      category: newTransactionParams.category,
-      type: newTransactionParams.type,
-    };
+  async createNewTransaction(dto: CreateTransactionDto) {
+    const category = await this.prisma.categories.findUnique({
+      where: { id: dto.categoryId },
+    });
 
-    this.data.push(newTransaction);
-    return structuredClone(newTransaction);
+    if (category) {
+      return await this.prisma.transactions.create({
+        data: {
+          amount: dto.amount,
+          date: new Date(),
+          categoryId: dto.categoryId,
+        },
+      });
+    }
   }
 }

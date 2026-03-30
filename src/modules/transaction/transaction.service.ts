@@ -7,19 +7,19 @@ import { TransactionType } from './transaction.entity';
 export class TransactionService {
   constructor(private transactionRepository: TransactionRepository) {}
 
-  getAllTransactions() {
-    return this.transactionRepository.getTransactions();
+  async getAllTransactions() {
+    return await this.transactionRepository.getTransactions();
   }
 
-  getTransactionById(transactionId: number) {
-    return this.transactionRepository.getTransactionById(transactionId);
+  async getTransactionById(transactionId: number) {
+    return await this.transactionRepository.getTransactionById(transactionId);
   }
 
-  getBalance() {
-    const income = this.transactionRepository.getTransactionsByType(
+  async getBalance() {
+    const income = await this.transactionRepository.getTransactionsByType(
       TransactionType.INCOME,
     );
-    const expense = this.transactionRepository.getTransactionsByType(
+    const expense = await this.transactionRepository.getTransactionsByType(
       TransactionType.EXPENSE,
     );
     const totalIncome = income.reduce(
@@ -33,11 +33,13 @@ export class TransactionService {
     return totalIncome - totalExpense;
   }
 
-  createNewTransaction(dto: CreateTransactionDto) {
-    return this.transactionRepository.createNewTransaction(dto);
+  async createNewTransaction(dto: CreateTransactionDto) {
+    return await this.transactionRepository.createNewTransaction(dto);
   }
 
-  deleteTransaction(transactionId: number): boolean {
-    return this.transactionRepository.deleteTransaction(transactionId);
+  async deleteTransaction(transactionId: number) {
+    return await this.transactionRepository.deleteTransactionById(
+      transactionId,
+    );
   }
 }
