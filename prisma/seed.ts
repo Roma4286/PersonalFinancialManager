@@ -7,7 +7,7 @@ async function main() {
     { name: 'Housing', type: 'expense' },
     { name: 'Food', type: 'expense' },
     { name: 'Transport', type: 'expense' },
-    { name: 'salary', type: 'income' },
+    { name: 'Salary', type: 'income' },
   ];
 
   for (const category of categories) {

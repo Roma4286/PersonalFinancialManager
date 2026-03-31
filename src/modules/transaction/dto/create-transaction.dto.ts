@@ -1,4 +1,4 @@
-import { IsNumber, IsPositive } from 'class-validator';
+import { IsNumber, IsPositive, Min } from 'class-validator';
 
 export class CreateTransactionDto {
   @IsNumber()
@@ -6,5 +6,6 @@ export class CreateTransactionDto {
   readonly amount!: number;
 
   @IsNumber()
+  @Min(1, { message: 'Category id must be greater than or equal to 1' })
   readonly categoryId!: number;
 }

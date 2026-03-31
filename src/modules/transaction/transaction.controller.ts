@@ -68,8 +68,17 @@ export class TransactionController {
     type: Transaction,
   })
   @ApiResponse({ status: 400, description: 'Bad Request.' })
+  @ApiResponse({ status: 404, description: 'Invalid category Id' })
   async createNewTransaction(@Body() transactionDto: CreateTransactionDto) {
-    return await this.transactionService.createNewTransaction(transactionDto);
+    const response =
+      await this.transactionService.createNewTransaction(transactionDto);
+    if (response) {
+      return response;
+    }
+
+    throw new NotFoundException(
+      `Category with id ${transactionDto.categoryId} not found`,
+    );
   }
 
   @Delete('/:id')

@@ -60,5 +60,6 @@ export class TransactionRepository {
         },
       });
     }
+    return null;
   }
 }
