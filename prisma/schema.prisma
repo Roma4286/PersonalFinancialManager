@@ -7,17 +7,30 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Wallets {
+  id Int @id @default(autoincrement())
+  name String @unique
+  balance Int @default(0)
+  transactions Transactions[]
+}
+
 model Categories { 
   id    Int     @id @default(autoincrement()) 
-  name String  @unique
+  name String
   type String
-  transaction  Transactions[]
+  transactions  Transactions[]
+
+  @@unique([name, type])
 } 
 
 model Transactions {
   id    Int     @id @default(autoincrement()) 
   amount Int
-  date DateTime
+  date DateTime @default(now())
+  
+  wallet Wallets @relation(fields: [walletId], references: [id])
+  walletId Int
+
   category Categories @relation(fields: [categoryId], references: [id])
   categoryId Int
 }
