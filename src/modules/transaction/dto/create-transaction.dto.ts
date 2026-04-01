@@ -7,5 +7,9 @@ export class CreateTransactionDto {
 
   @IsNumber()
   @Min(1, { message: 'Category id must be greater than or equal to 1' })
+  readonly walletId!: number;
+
+  @IsNumber()
+  @Min(1, { message: 'Category id must be greater than or equal to 1' })
   readonly categoryId!: number;
 }

@@ -12,9 +12,26 @@ async function main() {
 
   for (const category of categories) {
     await prisma.categories.upsert({
-      where: { name: category.name },
+      where: {
+        name_type: {
+          name: category.name,
+          type: category.type,
+        },
+      },
       update: {},
       create: category,
+    });
+  }
+
+  const wallets = [{ name: 'Wallet' }, { name: 'Card' }];
+
+  for (const wallet of wallets) {
+    await prisma.wallets.upsert({
+      where: {
+        name: wallet.name,
+      },
+      update: {},
+      create: wallet,
     });
   }
 
