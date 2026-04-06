@@ -1,32 +1,33 @@
-import { PrismaClient } from '@prisma/client';
+import 'dotenv/config';
+import { PrismaClient, TransactionType } from '@prisma/client';
+
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const prisma = new PrismaClient();
-
 async function main() {
   const categories = [
-    { name: 'Housing', type: 'expense' },
-    { name: 'Food', type: 'expense' },
-    { name: 'Transport', type: 'expense' },
-    { name: 'Salary', type: 'income' },
+    { name: 'Housing', type: TransactionType.EXPENSE },
+    { name: 'Food', type: TransactionType.EXPENSE },
+    { name: 'Transport', type: TransactionType.EXPENSE },
+    { name: 'Salary', type: TransactionType.INCOME },
   ];
 
   for (const category of categories) {
-    await prisma.categories.upsert({
-      where: {
-        name_type: {
-          name: category.name,
-          type: category.type,
-        },
-      },
-      update: {},
-      create: category,
+    const existing = await prisma.category.findFirst({
+      where: { name: category.name, type: category.type },
     });
+
+    if (!existing) {
+      await prisma.category.create({ data: category });
+    }
   }
 
   const wallets = [{ name: 'Wallet' }, { name: 'Card' }];
 
   for (const wallet of wallets) {
-    await prisma.wallets.upsert({
+    await prisma.wallet.upsert({
       where: {
         name: wallet.name,
       },

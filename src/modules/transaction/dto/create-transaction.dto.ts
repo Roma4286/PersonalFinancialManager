@@ -1,15 +1,13 @@
-import { IsNumber, IsPositive, Min } from 'class-validator';
+import { IsNumber, IsPositive, IsString } from 'class-validator';
 
 export class CreateTransactionDto {
   @IsNumber()
   @IsPositive({ message: 'Amount must be > 0' })
   readonly amount!: number;
 
-  @IsNumber()
-  @Min(1, { message: 'Category id must be greater than or equal to 1' })
-  readonly walletId!: number;
+  @IsString()
+  readonly walletId!: string;
 
-  @IsNumber()
-  @Min(1, { message: 'Category id must be greater than or equal to 1' })
-  readonly categoryId!: number;
+  @IsString()
+  readonly categoryId!: string;
 }

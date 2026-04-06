@@ -4,33 +4,35 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
-model Wallets {
-  id Int @id @default(autoincrement())
-  name String @unique
-  balance Int @default(0)
-  transactions Transactions[]
+model Wallet {
+  id           String        @id @default(cuid(2))
+  name         String        @unique
+  balance      Int           @default(0)
+  transactions Transaction[]
 }
 
-model Categories { 
-  id    Int     @id @default(autoincrement()) 
-  name String
-  type String
-  transactions  Transactions[]
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
 
-  @@unique([name, type])
-} 
+model Category {
+  id           String          @id @default(cuid(2))
+  name         String
+  type         TransactionType
+  transactions Transaction[]
+}
 
-model Transactions {
-  id    Int     @id @default(autoincrement()) 
+model Transaction {
+  id     String   @id @default(cuid(2))
   amount Int
-  date DateTime @default(now())
-  
-  wallet Wallets @relation(fields: [walletId], references: [id])
-  walletId Int
+  date   DateTime @default(now())
 
-  category Categories @relation(fields: [categoryId], references: [id])
-  categoryId Int
+  wallet   Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  walletId String
+
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId String
 }

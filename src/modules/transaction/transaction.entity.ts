@@ -1,10 +1,5 @@
-export enum TransactionType {
-  INCOME = 'income',
-  EXPENSE = 'expense',
-}
-
 export class Transaction {
-  id!: number;
+  id!: string;
   amount!: number;
   date!: Date;
   walletId!: number;

@@ -1,9 +1,6 @@
-import { Type } from 'class-transformer';
-import { IsNumber, Min } from 'class-validator';
+import { IsString } from 'class-validator';
 
 export class GetTransactionDto {
-  @Type(() => Number)
-  @IsNumber()
-  @Min(1, { message: 'Id must be greater than or equal to 1' })
-  readonly id!: number;
+  @IsString()
+  readonly id!: string;
 }
