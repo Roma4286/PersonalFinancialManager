@@ -1,6 +1,6 @@
 import { IsString } from 'class-validator';
 
-export class GetTransactionDto {
+export class GetBalanceDto {
   @IsString()
-  readonly id!: string;
+  readonly walletId!: string;
 }
