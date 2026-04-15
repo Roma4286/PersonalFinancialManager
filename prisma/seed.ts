@@ -1,11 +1,8 @@
-import 'dotenv/config';
 import { PrismaClient, TransactionType } from '@prisma/client';
-
-import dotenv from 'dotenv';
-
-dotenv.config();
+import 'dotenv/config';
 
 const prisma = new PrismaClient();
+
 async function main() {
   const categories = [
     { name: 'Housing', type: TransactionType.EXPENSE },
