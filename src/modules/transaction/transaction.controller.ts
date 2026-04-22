@@ -11,24 +11,23 @@ import {
 import { TransactionService } from './transaction.service';
 import { ApiResponse } from '@nestjs/swagger';
 import {
-  AllTransactions,
+  AllWalletsWithAllTransactions,
   BalanceResponse,
+  Transaction,
 } from './dto/transaction-response.dto';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
-import { GetTransactionDto } from './dto/get-transaction.dto';
-import { RemoveTransactionDto } from './dto/remove-transaction.dto';
-import { Transaction } from './transaction.entity';
+import { IdParamDto } from './dto/get-id.dto';
 import { GetBalanceDto } from './dto/get-balance.dto';
 
 @Controller('/transactions')
 export class TransactionController {
   constructor(private transactionService: TransactionService) {}
 
-  @Get('/')
+  @Get('/wallets')
   @ApiResponse({
     status: 200,
     description: 'Retrieve all items.',
-    type: AllTransactions,
+    type: AllWalletsWithAllTransactions,
     isArray: true,
   })
   async getAllTransactions() {
@@ -55,11 +54,12 @@ export class TransactionController {
     type: Transaction,
   })
   @ApiResponse({ status: 404, description: 'Invalid Id.' })
-  async getOneTransaction(@Param() params: GetTransactionDto) {
+  async getOneTransaction(@Param() params: IdParamDto) {
     return await this.transactionService.getTransactionById(params.id);
   }
 
   @Post('/')
+  @HttpCode(HttpStatus.CREATED)
   @ApiResponse({
     status: 201,
     description: 'The record has been successfully created.',
@@ -78,7 +78,7 @@ export class TransactionController {
     description: 'Remove transaction.',
   })
   @ApiResponse({ status: 404, description: 'Invalid Id.' })
-  async deleteTransaction(@Param() params: RemoveTransactionDto) {
+  async deleteTransaction(@Param() params: IdParamDto) {
     await this.transactionService.deleteTransaction(params.id);
   }
 }

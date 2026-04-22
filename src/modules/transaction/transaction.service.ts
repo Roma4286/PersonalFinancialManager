@@ -6,12 +6,16 @@ import {
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { TransactionType } from '@prisma/client';
+import {
+  AllWalletsWithAllTransactions,
+  Transaction,
+} from './dto/transaction-response.dto';
 
 @Injectable()
 export class TransactionService {
   constructor(private prisma: PrismaService) {}
 
-  async getAllTransactions() {
+  async getAllTransactions(): Promise<AllWalletsWithAllTransactions[]> {
     return await this.prisma.wallet.findMany({
       include: {
         transactions: {
@@ -23,7 +27,7 @@ export class TransactionService {
     });
   }
 
-  async getTransactionById(transactionId: string) {
+  async getTransactionById(transactionId: string): Promise<Transaction> {
     const transaction = await this.prisma.transaction.findUnique({
       where: { id: transactionId },
     });
@@ -37,7 +41,7 @@ export class TransactionService {
     return transaction;
   }
 
-  async getBalance(walletId: string) {
+  async getBalance(walletId: string): Promise<number> {
     const wallet = await this.prisma.wallet.findUnique({
       where: { id: walletId },
     });
@@ -49,7 +53,7 @@ export class TransactionService {
     return wallet.balance;
   }
 
-  async createNewTransaction(dto: CreateTransactionDto) {
+  async createNewTransaction(dto: CreateTransactionDto): Promise<Transaction> {
     return await this.prisma.$transaction(async (tx) => {
       const wallet = await tx.wallet.findUnique({
         where: { id: dto.walletId },
@@ -91,9 +95,17 @@ export class TransactionService {
     });
   }
 
-  async deleteTransaction(transactionId: string) {
+  async deleteTransaction(transactionId: string): Promise<Transaction> {
     return await this.prisma.$transaction(async (tx) => {
-      const transaction = await this.getTransactionById(transactionId);
+      const transaction = await tx.transaction.findUnique({
+        where: { id: transactionId },
+      });
+
+      if (!transaction) {
+        throw new NotFoundException(
+          `Transaction with id ${transactionId} not found`,
+        );
+      }
 
       const category = await tx.category.findUnique({
         where: { id: transaction.categoryId },

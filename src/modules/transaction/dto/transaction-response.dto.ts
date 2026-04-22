@@ -6,17 +6,19 @@ class Category {
   readonly type!: TransactionType;
 }
 
-class TransactionWithCategory {
+export class Transaction {
   readonly id!: string;
   readonly amount!: number;
   readonly date!: Date;
   readonly walletId!: string;
   readonly categoryId!: string;
+}
 
+export class TransactionWithCategory extends Transaction {
   readonly category!: Category;
 }
 
-export class AllTransactions {
+export class AllWalletsWithAllTransactions {
   readonly id!: string;
   readonly name!: string;
   readonly balance!: number;

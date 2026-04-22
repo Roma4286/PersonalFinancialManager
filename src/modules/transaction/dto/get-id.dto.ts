@@ -1,6 +1,6 @@
 import { IsString } from 'class-validator';
 
-export class GetTransactionDto {
+export class IdParamDto {
   @IsString()
   readonly id!: string;
 }

@@ -36,4 +36,7 @@ model Transaction {
 
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   categoryId String
+
+  @@index([walletId])
+  @@index([categoryId])
 }
