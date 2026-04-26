@@ -1,17 +1,17 @@
 import { IsNumber, IsOptional, IsPositive, IsString } from 'class-validator';
 
-export class CreateTransactionDto {
+export class UpdateTransactionDto {
+  @IsString()
+  readonly id!: string;
+
   @IsNumber()
   @IsPositive({ message: 'Amount must be > 0' })
-  readonly amount!: number;
+  readonly newAmount!: number;
 
   @IsOptional()
   @IsString()
-  readonly description?: string;
+  readonly newDescription?: string;
 
   @IsString()
-  readonly walletId!: string;
-
-  @IsString()
-  readonly categoryId!: string;
+  readonly newCategoryId!: string;
 }

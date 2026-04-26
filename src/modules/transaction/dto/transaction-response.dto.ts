@@ -1,17 +1,20 @@
-import { TransactionType } from '@prisma/client';
-
 class Category {
   readonly id!: string;
   readonly name!: string;
-  readonly type!: TransactionType;
+  readonly type!: 'EXPENSE' | 'INCOME';
+  readonly createdAt!: Date;
+  readonly updatedAt!: Date;
 }
 
 export class Transaction {
   readonly id!: string;
   readonly amount!: number;
+  readonly description!: string | null;
   readonly date!: Date;
   readonly walletId!: string;
   readonly categoryId!: string;
+  readonly createdAt!: Date;
+  readonly updatedAt!: Date;
 }
 
 export class TransactionWithCategory extends Transaction {

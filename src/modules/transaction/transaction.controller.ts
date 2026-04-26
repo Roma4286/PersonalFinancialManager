@@ -18,6 +18,7 @@ import {
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { IdParamDto } from './dto/get-id.dto';
 import { GetBalanceDto } from './dto/get-balance.dto';
+import { UpdateTransactionDto } from './dto/update-transaction.dto';
 
 @Controller('/transactions')
 export class TransactionController {
@@ -31,7 +32,7 @@ export class TransactionController {
     isArray: true,
   })
   async getAllTransactions() {
-    return await this.transactionService.getAllTransactions();
+    return await this.transactionService.getAllWalletsWithAllTransactions();
   }
 
   @Get('/stats/:walletId')
@@ -69,6 +70,22 @@ export class TransactionController {
   @ApiResponse({ status: 404, description: 'Invalid category or wallet Id' })
   async createNewTransaction(@Body() transactionDto: CreateTransactionDto) {
     return await this.transactionService.createNewTransaction(transactionDto);
+  }
+
+  @Post('/update')
+  @HttpCode(HttpStatus.OK)
+  @ApiResponse({
+    status: 200,
+    description: 'The record has been successfully updated.',
+    type: Transaction,
+  })
+  @ApiResponse({ status: 400, description: 'Bad Request.' })
+  @ApiResponse({
+    status: 404,
+    description: 'Invalid transaction or category Id',
+  })
+  async upateTransaction(@Body() newTrasnsaction: UpdateTransactionDto) {
+    return await this.transactionService.updateTransaction(newTrasnsaction);
   }
 
   @Delete('/:id')
