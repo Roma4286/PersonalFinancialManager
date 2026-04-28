@@ -7,18 +7,21 @@ import {
   Body,
   HttpCode,
   HttpStatus,
+  Query,
 } from '@nestjs/common';
 import { TransactionService } from './transaction.service';
 import { ApiResponse } from '@nestjs/swagger';
 import {
-  AllWalletsWithAllTransactions,
   BalanceResponse,
+  Category,
   Transaction,
+  Wallet,
 } from './dto/transaction-response.dto';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { IdParamDto } from './dto/get-id.dto';
 import { GetBalanceDto } from './dto/get-balance.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
+import { TransactionFilterDto } from './dto/get-transactions.dto';
 
 @Controller('/transactions')
 export class TransactionController {
@@ -28,11 +31,33 @@ export class TransactionController {
   @ApiResponse({
     status: 200,
     description: 'Retrieve all items.',
-    type: AllWalletsWithAllTransactions,
+    type: Wallet,
     isArray: true,
   })
-  async getAllTransactions() {
-    return await this.transactionService.getAllWalletsWithAllTransactions();
+  async getAllWallets() {
+    return await this.transactionService.getAllWallets();
+  }
+
+  @Get('/categories')
+  @ApiResponse({
+    status: 200,
+    description: 'Retrieve all items.',
+    type: Category,
+    isArray: true,
+  })
+  async getAllCategories() {
+    return await this.transactionService.getAllCategories();
+  }
+
+  @Get('/')
+  @ApiResponse({
+    status: 200,
+    description: 'Retrieve all items.',
+    type: Transaction,
+    isArray: true,
+  })
+  async getAllTransactions(@Query() query: TransactionFilterDto) {
+    return await this.transactionService.getAllTransactions(query);
   }
 
   @Get('/stats/:walletId')

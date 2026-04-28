@@ -1,7 +1,20 @@
-class Category {
+enum TransactionType {
+  INCOME = 'INCOME',
+  EXPENSE = 'EXPENSE',
+}
+
+export class Category {
   readonly id!: string;
   readonly name!: string;
-  readonly type!: 'EXPENSE' | 'INCOME';
+  readonly type!: TransactionType;
+  readonly createdAt!: Date;
+  readonly updatedAt!: Date;
+}
+
+export class Wallet {
+  readonly id!: string;
+  readonly name!: string;
+  readonly balance!: string;
   readonly createdAt!: Date;
   readonly updatedAt!: Date;
 }

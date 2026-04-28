@@ -5,32 +5,55 @@ import {
 } from '@nestjs/common';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma, Transaction, TransactionType, Wallet } from '@prisma/client';
+import {
+  Category,
+  Prisma,
+  Transaction,
+  TransactionType,
+  Wallet,
+} from '@prisma/client';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
-
-type WalletWithTransactions = Prisma.WalletGetPayload<{
-  include: {
-    transactions: {
-      include: {
-        category: true;
-      };
-    };
-  };
-}>;
+import { TransactionFilterDto } from './dto/get-transactions.dto';
 
 @Injectable()
 export class TransactionService {
   constructor(private prisma: PrismaService) {}
 
-  async getAllWalletsWithAllTransactions(): Promise<WalletWithTransactions[]> {
-    return await this.prisma.wallet.findMany({
-      include: {
-        transactions: {
-          include: {
-            category: true,
-          },
-        },
+  async getAllWallets(): Promise<Wallet[]> {
+    return await this.prisma.wallet.findMany();
+  }
+
+  async getAllCategories(): Promise<Category[]> {
+    return await this.prisma.category.findMany();
+  }
+
+  async getAllTransactions(filters: TransactionFilterDto) {
+    const page = filters.page ?? 1;
+    const length = Math.min(filters.length ?? 100, 1000);
+
+    return await this.prisma.transaction.findMany({
+      orderBy: {
+        date: 'desc',
       },
+      where: {
+        ...(filters.categoryId && { categoryId: filters.categoryId }),
+        ...(filters.walletId && { walletId: filters.walletId }),
+        ...(filters.transactionType && {
+          category: {
+            is: {
+              type: filters.transactionType,
+            },
+          },
+        }),
+        ...((filters.from || filters.to) && {
+          date: {
+            ...(filters.from && { gte: new Date(filters.from) }),
+            ...(filters.to && { lte: new Date(filters.to + 'T23:59:59.999Z') }),
+          },
+        }),
+      },
+      skip: (page - 1) * length,
+      take: length,
     });
   }
 
