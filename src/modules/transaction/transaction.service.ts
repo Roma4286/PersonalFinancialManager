@@ -140,28 +140,28 @@ export class TransactionService {
     );
   }
 
-  async updateTransaction(dto: UpdateTransactionDto) {
+  async updateTransaction(transactionId: string, dto: UpdateTransactionDto) {
     return await this.prisma.$transaction(
       async (tx) => {
         const oldTransaction = await tx.transaction.findUnique({
           where: {
-            id: dto.id,
+            id: transactionId,
           },
         });
 
         if (!oldTransaction) {
           throw new NotFoundException(
-            `The transaction with id ${dto.id} not found`,
+            `The transaction with id ${transactionId} not found`,
           );
         }
 
         const category = await tx.category.findUnique({
-          where: { id: dto.newCategoryId },
+          where: { id: dto.categoryId },
         });
 
         if (!category) {
           throw new NotFoundException(
-            `The ategory with id ${dto.newCategoryId} not found`,
+            `The category with id ${dto.categoryId} not found`,
           );
         }
 
@@ -196,8 +196,8 @@ export class TransactionService {
 
         const newEffect =
           category.type === TransactionType.EXPENSE
-            ? new Prisma.Decimal(dto.newAmount).neg()
-            : new Prisma.Decimal(dto.newAmount);
+            ? new Prisma.Decimal(dto.amount).neg()
+            : new Prisma.Decimal(dto.amount);
 
         const balanceDelta = oldEffect.plus(newEffect);
         this.validateSufficientFunds(wallet, balanceDelta);
@@ -208,11 +208,11 @@ export class TransactionService {
         });
 
         return await tx.transaction.update({
-          where: { id: dto.id },
+          where: { id: transactionId },
           data: {
-            amount: dto.newAmount,
-            description: dto.newDescription ?? null,
-            categoryId: dto.newCategoryId,
+            amount: dto.amount,
+            description: dto.description ?? null,
+            categoryId: dto.categoryId,
           },
         });
       },

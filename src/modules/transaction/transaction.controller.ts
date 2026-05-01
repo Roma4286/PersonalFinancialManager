@@ -8,6 +8,7 @@ import {
   HttpCode,
   HttpStatus,
   Query,
+  Patch,
 } from '@nestjs/common';
 import { TransactionService } from './transaction.service';
 import { ApiResponse } from '@nestjs/swagger';
@@ -97,7 +98,7 @@ export class TransactionController {
     return await this.transactionService.createNewTransaction(transactionDto);
   }
 
-  @Post('/update')
+  @Patch('/update/:id')
   @HttpCode(HttpStatus.OK)
   @ApiResponse({
     status: 200,
@@ -109,8 +110,11 @@ export class TransactionController {
     status: 404,
     description: 'Invalid transaction or category Id',
   })
-  async upateTransaction(@Body() newTrasnsaction: UpdateTransactionDto) {
-    return await this.transactionService.updateTransaction(newTrasnsaction);
+  async upateTransaction(
+    @Param('id') transactionId: string,
+    @Body() dto: UpdateTransactionDto,
+  ) {
+    return await this.transactionService.updateTransaction(transactionId, dto);
   }
 
   @Delete('/:id')
