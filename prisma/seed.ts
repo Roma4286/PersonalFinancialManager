@@ -12,13 +12,16 @@ async function main() {
   ];
 
   for (const category of categories) {
-    const existing = await prisma.category.findFirst({
-      where: { name: category.name, type: category.type },
+    await prisma.category.upsert({
+      where: {
+        name_type: {
+          name: category.name,
+          type: category.type,
+        },
+      },
+      update: {},
+      create: category,
     });
-
-    if (!existing) {
-      await prisma.category.create({ data: category });
-    }
   }
 
   const wallets = [{ name: 'Wallet' }, { name: 'Card' }];
