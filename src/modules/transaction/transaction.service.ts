@@ -72,7 +72,7 @@ export class TransactionService {
     return transaction;
   }
 
-  async getBalance(walletId: string): Promise<number> {
+  async getBalance(walletId: string): Promise<string> {
     const wallet = await this.prisma.wallet.findUnique({
       where: { id: walletId },
       select: {
@@ -84,7 +84,7 @@ export class TransactionService {
       throw new NotFoundException(`The wallet with id ${walletId} not found`);
     }
 
-    return Number(wallet.balance);
+    return String(wallet.balance);
   }
 
   validateSufficientFunds(wallet: Wallet, amount: Prisma.Decimal) {
@@ -239,12 +239,18 @@ export class TransactionService {
           where: { id: transaction.categoryId },
         });
 
-        if (category) {
+        const wallet = await tx.wallet.findUnique({
+          where: { id: transaction.walletId },
+        });
+
+        if (category && wallet) {
           const balanceDelta = new Prisma.Decimal(
             category.type === TransactionType.EXPENSE
               ? transaction.amount
               : transaction.amount.neg(),
           );
+
+          this.validateSufficientFunds(wallet, balanceDelta);
 
           await tx.wallet.update({
             where: { id: transaction.walletId },

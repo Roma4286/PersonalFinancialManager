@@ -42,5 +42,5 @@ export class AllWalletsWithAllTransactions {
 }
 
 export class BalanceResponse {
-  readonly totalBalance!: number;
+  readonly totalBalance!: string;
 }
