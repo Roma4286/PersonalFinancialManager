@@ -17,6 +17,8 @@ import { TransactionFilterDto } from './dto/get-transactions.dto';
 
 @Injectable()
 export class TransactionService {
+  DEFAULT_PAGE_SIZE = 100;
+  MAX_PAGE_SIZE = 1000;
   constructor(private prisma: PrismaService) {}
 
   async getAllWallets(): Promise<Wallet[]> {
@@ -28,8 +30,17 @@ export class TransactionService {
   }
 
   async getAllTransactions(filters: TransactionFilterDto) {
+    if (filters.from && filters.to) {
+      if (new Date(filters.from) > new Date(filters.to)) {
+        throw new BadRequestException('from must be <= to');
+      }
+    }
+
     const page = filters.page ?? 1;
-    const length = Math.min(filters.length ?? 100, 1000);
+    const length = Math.min(
+      filters.length ?? this.DEFAULT_PAGE_SIZE,
+      this.MAX_PAGE_SIZE,
+    );
 
     return await this.prisma.transaction.findMany({
       orderBy: {
@@ -65,7 +76,7 @@ export class TransactionService {
 
     if (!transaction) {
       throw new NotFoundException(
-        `The tansaction with id ${transactionId} not found`,
+        `The transaction with id ${transactionId} not found`,
       );
     }
 
@@ -130,7 +141,7 @@ export class TransactionService {
         return await tx.transaction.create({
           data: {
             amount: dto.amount,
-            description: dto.description ?? null,
+            description: dto.description,
             walletId: dto.walletId,
             categoryId: dto.categoryId,
           },
@@ -211,7 +222,7 @@ export class TransactionService {
           where: { id: transactionId },
           data: {
             amount: dto.amount,
-            description: dto.description ?? null,
+            description: dto.description,
             categoryId: dto.categoryId,
           },
         });

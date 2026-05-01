@@ -16,6 +16,7 @@ import {
   BalanceResponse,
   Category,
   Transaction,
+  TransactionWithCategory,
   Wallet,
 } from './dto/transaction-response.dto';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
@@ -54,7 +55,7 @@ export class TransactionController {
   @ApiResponse({
     status: 200,
     description: 'Retrieve all items.',
-    type: Transaction,
+    type: TransactionWithCategory,
     isArray: true,
   })
   async getAllTransactions(@Query() query: TransactionFilterDto) {
@@ -110,7 +111,7 @@ export class TransactionController {
     status: 404,
     description: 'Invalid transaction or category Id',
   })
-  async upateTransaction(
+  async updateTransaction(
     @Param('id') transactionId: string,
     @Body() dto: UpdateTransactionDto,
   ) {

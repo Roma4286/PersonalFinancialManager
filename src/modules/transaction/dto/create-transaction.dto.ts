@@ -1,4 +1,10 @@
-import { IsNumber, IsOptional, IsPositive, IsString } from 'class-validator';
+import {
+  IsNumber,
+  IsOptional,
+  IsPositive,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 
 export class CreateTransactionDto {
   @IsNumber()
@@ -7,6 +13,7 @@ export class CreateTransactionDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(500)
   readonly description?: string;
 
   @IsString()
