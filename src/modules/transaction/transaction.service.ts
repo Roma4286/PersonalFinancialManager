@@ -5,29 +5,19 @@ import {
 } from '@nestjs/common';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { PrismaService } from '../prisma/prisma.service';
-import {
-  Category,
-  Prisma,
-  Transaction,
-  TransactionType,
-  Wallet,
-} from '@prisma/client';
+import { Prisma, Transaction, TransactionType } from '@prisma/client';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { TransactionFilterDto } from './dto/get-transactions.dto';
+import { WalletService } from '../wallet/wallet.service';
 
 @Injectable()
 export class TransactionService {
   DEFAULT_PAGE_SIZE = 100;
   MAX_PAGE_SIZE = 1000;
-  constructor(private prisma: PrismaService) {}
-
-  async getAllWallets(): Promise<Wallet[]> {
-    return await this.prisma.wallet.findMany();
-  }
-
-  async getAllCategories(): Promise<Category[]> {
-    return await this.prisma.category.findMany();
-  }
+  constructor(
+    private prisma: PrismaService,
+    private walletService: WalletService,
+  ) {}
 
   async getAllTransactions(filters: TransactionFilterDto) {
     if (filters.from && filters.to) {
@@ -83,27 +73,6 @@ export class TransactionService {
     return transaction;
   }
 
-  async getBalance(walletId: string): Promise<string> {
-    const wallet = await this.prisma.wallet.findUnique({
-      where: { id: walletId },
-      select: {
-        balance: true,
-      },
-    });
-
-    if (!wallet) {
-      throw new NotFoundException(`The wallet with id ${walletId} not found`);
-    }
-
-    return String(wallet.balance);
-  }
-
-  validateSufficientFunds(wallet: Wallet, amount: Prisma.Decimal) {
-    if (wallet.balance.plus(amount).isNegative()) {
-      throw new BadRequestException('Insufficient funds');
-    }
-  }
-
   async createNewTransaction(dto: CreateTransactionDto): Promise<Transaction> {
     return await this.prisma.$transaction(
       async (tx) => {
@@ -131,7 +100,7 @@ export class TransactionService {
           category.type === TransactionType.EXPENSE ? -dto.amount : dto.amount,
         );
 
-        this.validateSufficientFunds(wallet, balanceDelta);
+        this.walletService.validateSufficientFunds(wallet, balanceDelta);
 
         await tx.wallet.update({
           where: { id: dto.walletId },
@@ -211,7 +180,7 @@ export class TransactionService {
             : new Prisma.Decimal(dto.amount);
 
         const balanceDelta = oldEffect.plus(newEffect);
-        this.validateSufficientFunds(wallet, balanceDelta);
+        this.walletService.validateSufficientFunds(wallet, balanceDelta);
 
         await tx.wallet.update({
           where: { id: oldTransaction.walletId },
@@ -261,7 +230,7 @@ export class TransactionService {
               : transaction.amount.neg(),
           );
 
-          this.validateSufficientFunds(wallet, balanceDelta);
+          this.walletService.validateSufficientFunds(wallet, balanceDelta);
 
           await tx.wallet.update({
             where: { id: transaction.walletId },

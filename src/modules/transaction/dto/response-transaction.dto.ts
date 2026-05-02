@@ -1,23 +1,4 @@
-enum TransactionType {
-  INCOME = 'INCOME',
-  EXPENSE = 'EXPENSE',
-}
-
-export class Category {
-  readonly id!: string;
-  readonly name!: string;
-  readonly type!: TransactionType;
-  readonly createdAt!: Date;
-  readonly updatedAt!: Date;
-}
-
-export class Wallet {
-  readonly id!: string;
-  readonly name!: string;
-  readonly balance!: string;
-  readonly createdAt!: Date;
-  readonly updatedAt!: Date;
-}
+import { Category } from '@/modules/category/dto/response-category.dto';
 
 export class Transaction {
   readonly id!: string;
@@ -39,8 +20,4 @@ export class AllWalletsWithAllTransactions {
   readonly name!: string;
   readonly balance!: number;
   readonly transactions!: TransactionWithCategory[];
-}
-
-export class BalanceResponse {
-  readonly totalBalance!: string;
 }

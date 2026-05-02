@@ -13,43 +13,17 @@ import {
 import { TransactionService } from './transaction.service';
 import { ApiResponse } from '@nestjs/swagger';
 import {
-  BalanceResponse,
-  Category,
   Transaction,
   TransactionWithCategory,
-  Wallet,
-} from './dto/transaction-response.dto';
+} from './dto/response-transaction.dto';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { IdParamDto } from './dto/get-id.dto';
-import { GetBalanceDto } from './dto/get-balance.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { TransactionFilterDto } from './dto/get-transactions.dto';
 
 @Controller('/transactions')
 export class TransactionController {
   constructor(private transactionService: TransactionService) {}
-
-  @Get('/wallets')
-  @ApiResponse({
-    status: 200,
-    description: 'Retrieve all items.',
-    type: Wallet,
-    isArray: true,
-  })
-  async getAllWallets() {
-    return await this.transactionService.getAllWallets();
-  }
-
-  @Get('/categories')
-  @ApiResponse({
-    status: 200,
-    description: 'Retrieve all items.',
-    type: Category,
-    isArray: true,
-  })
-  async getAllCategories() {
-    return await this.transactionService.getAllCategories();
-  }
 
   @Get('/')
   @ApiResponse({
@@ -60,19 +34,6 @@ export class TransactionController {
   })
   async getAllTransactions(@Query() query: TransactionFilterDto) {
     return await this.transactionService.getAllTransactions(query);
-  }
-
-  @Get('/stats/:walletId')
-  @ApiResponse({
-    status: 200,
-    description: 'Financial Summary.',
-    type: BalanceResponse,
-  })
-  @ApiResponse({ status: 404, description: 'Invalid wallet Id.' })
-  async getBalance(@Param() params: GetBalanceDto) {
-    return {
-      totalBalance: await this.transactionService.getBalance(params.walletId),
-    };
   }
 
   @Get('/:id')
