@@ -107,10 +107,13 @@ export class TransactionService {
           data: { balance: { increment: balanceDelta } },
         });
 
+        const date = dto.date ? new Date(dto.date) : new Date();
+
         return await tx.transaction.create({
           data: {
             amount: dto.amount,
             description: dto.description,
+            date: date,
             walletId: dto.walletId,
             categoryId: dto.categoryId,
           },
@@ -192,6 +195,7 @@ export class TransactionService {
           data: {
             amount: dto.amount,
             description: dto.description,
+            date: dto.date ? new Date(dto.date) : undefined,
             categoryId: dto.categoryId,
           },
         });

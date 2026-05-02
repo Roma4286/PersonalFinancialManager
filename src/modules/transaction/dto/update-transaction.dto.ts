@@ -1,4 +1,5 @@
 import {
+  IsDateString,
   IsNumber,
   IsOptional,
   IsPositive,
@@ -15,6 +16,10 @@ export class UpdateTransactionDto {
   @IsString()
   @MaxLength(500)
   readonly description?: string;
+
+  @IsOptional()
+  @IsDateString()
+  readonly date?: string;
 
   @IsString()
   readonly categoryId!: string;
