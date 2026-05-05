@@ -7,15 +7,19 @@ import {
   Body,
   HttpCode,
   HttpStatus,
-  NotFoundException,
+  Query,
+  Patch,
 } from '@nestjs/common';
 import { TransactionService } from './transaction.service';
 import { ApiResponse } from '@nestjs/swagger';
-import { BalanceResponse } from './dto/transaction-response.dto';
+import {
+  Transaction,
+  TransactionWithCategory,
+} from './dto/response-transaction.dto';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
-import { GetTransactionDto } from './dto/get-transaction.dto';
-import { RemoveTransactionDto } from './dto/remove-transaction.dto';
-import { Transaction } from './transaction.entity';
+import { IdParamDto } from './dto/get-id.dto';
+import { UpdateTransactionDto } from './dto/update-transaction.dto';
+import { TransactionFilterDto } from './dto/get-transactions.dto';
 
 @Controller('/transactions')
 export class TransactionController {
@@ -25,21 +29,11 @@ export class TransactionController {
   @ApiResponse({
     status: 200,
     description: 'Retrieve all items.',
-    type: Transaction,
+    type: TransactionWithCategory,
     isArray: true,
   })
-  getAllTransactions() {
-    return this.transactionService.getAllTransactions();
-  }
-
-  @Get('/stats')
-  @ApiResponse({
-    status: 200,
-    description: 'Financial Summary.',
-    type: BalanceResponse,
-  })
-  getBalance() {
-    return { totalBalance: this.transactionService.getBalance() };
+  async getAllTransactions(@Query() query: TransactionFilterDto) {
+    return await this.transactionService.getAllTransactions(query);
   }
 
   @Get('/:id')
@@ -49,25 +43,40 @@ export class TransactionController {
     type: Transaction,
   })
   @ApiResponse({ status: 404, description: 'Invalid Id.' })
-  getOneTransaction(@Param() params: GetTransactionDto) {
-    const response = this.transactionService.getTransactionById(params.id);
-
-    if (response === null) {
-      throw new NotFoundException(`Transaction with id ${params.id} not found`);
-    }
-
-    return response;
+  async getOneTransaction(@Param() params: IdParamDto) {
+    return await this.transactionService.getTransactionById(params.id);
   }
 
   @Post('/')
+  @HttpCode(HttpStatus.CREATED)
   @ApiResponse({
     status: 201,
     description: 'The record has been successfully created.',
     type: Transaction,
   })
   @ApiResponse({ status: 400, description: 'Bad Request.' })
-  createNewTransaction(@Body() transactionDto: CreateTransactionDto) {
-    return this.transactionService.createNewTransaction(transactionDto);
+  @ApiResponse({ status: 404, description: 'Invalid category or wallet Id' })
+  async createNewTransaction(@Body() transactionDto: CreateTransactionDto) {
+    return await this.transactionService.createNewTransaction(transactionDto);
+  }
+
+  @Patch('/:id')
+  @HttpCode(HttpStatus.OK)
+  @ApiResponse({
+    status: 200,
+    description: 'The record has been successfully updated.',
+    type: Transaction,
+  })
+  @ApiResponse({ status: 400, description: 'Bad Request.' })
+  @ApiResponse({
+    status: 404,
+    description: 'Invalid transaction or category Id',
+  })
+  async updateTransaction(
+    @Param('id') transactionId: string,
+    @Body() dto: UpdateTransactionDto,
+  ) {
+    return await this.transactionService.updateTransaction(transactionId, dto);
   }
 
   @Delete('/:id')
@@ -77,11 +86,7 @@ export class TransactionController {
     description: 'Remove transaction.',
   })
   @ApiResponse({ status: 404, description: 'Invalid Id.' })
-  deleteTransaction(@Param() params: RemoveTransactionDto) {
-    const response = this.transactionService.deleteTransaction(params.id);
-
-    if (!response) {
-      throw new NotFoundException(`Transaction with id ${params.id} not found`);
-    }
+  async deleteTransaction(@Param() params: IdParamDto) {
+    await this.transactionService.deleteTransaction(params.id);
   }
 }
