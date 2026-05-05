@@ -1,9 +1,11 @@
 import {
   IsDateString,
+  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsPositive,
   IsString,
+  Length,
   MaxLength,
 } from 'class-validator';
 
@@ -22,8 +24,12 @@ export class CreateTransactionDto {
   readonly date?: string;
 
   @IsString()
+  @IsNotEmpty()
+  @Length(24, 24)
   readonly walletId!: string;
 
   @IsString()
+  @IsNotEmpty()
+  @Length(24, 24)
   readonly categoryId!: string;
 }

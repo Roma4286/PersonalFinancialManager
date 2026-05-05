@@ -60,7 +60,7 @@ export class TransactionController {
     return await this.transactionService.createNewTransaction(transactionDto);
   }
 
-  @Patch('/update/:id')
+  @Patch('/:id')
   @HttpCode(HttpStatus.OK)
   @ApiResponse({
     status: 200,

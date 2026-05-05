@@ -14,10 +14,3 @@ export class Transaction {
 export class TransactionWithCategory extends Transaction {
   readonly category!: Category;
 }
-
-export class AllWalletsWithAllTransactions {
-  readonly id!: string;
-  readonly name!: string;
-  readonly balance!: number;
-  readonly transactions!: TransactionWithCategory[];
-}

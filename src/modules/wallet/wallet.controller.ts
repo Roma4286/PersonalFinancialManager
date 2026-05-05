@@ -19,7 +19,7 @@ export class WalletController {
     return await this.walletService.getAllWallets();
   }
 
-  @Get('/stats/:walletId')
+  @Get('/:id/balance')
   @ApiResponse({
     status: 200,
     description: 'Financial Summary.',
@@ -28,7 +28,7 @@ export class WalletController {
   @ApiResponse({ status: 404, description: 'Invalid wallet Id.' })
   async getBalance(@Param() params: GetBalanceDto) {
     return {
-      totalBalance: await this.walletService.getBalance(params.walletId),
+      totalBalance: await this.walletService.getBalance(params.id),
     };
   }
 }

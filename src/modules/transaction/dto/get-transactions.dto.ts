@@ -5,6 +5,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Length,
   Min,
 } from 'class-validator';
 
@@ -28,10 +29,12 @@ export class TransactionFilterDto {
 
   @IsString()
   @IsOptional()
+  @Length(24, 24)
   readonly categoryId?: string;
 
   @IsString()
   @IsOptional()
+  @Length(24, 24)
   readonly walletId?: string;
 
   @IsEnum(TransactionType)

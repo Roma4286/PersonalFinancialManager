@@ -1,6 +1,8 @@
-import { IsString } from 'class-validator';
+import { IsNotEmpty, IsString, Length } from 'class-validator';
 
 export class GetBalanceDto {
   @IsString()
-  readonly walletId!: string;
+  @IsNotEmpty()
+  @Length(24, 24)
+  readonly id!: string;
 }

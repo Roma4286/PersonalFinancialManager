@@ -3,11 +3,11 @@ import { CategoryService } from './category.service';
 import { ApiResponse } from '@nestjs/swagger';
 import { Category } from './dto/response-category.dto';
 
-@Controller('/category')
+@Controller('/categories')
 export class CategoryController {
   constructor(private categoryService: CategoryService) {}
 
-  @Get('/categories')
+  @Get('/')
   @ApiResponse({
     status: 200,
     description: 'Retrieve all items.',
