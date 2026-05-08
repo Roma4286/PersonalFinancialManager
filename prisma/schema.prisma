@@ -20,6 +20,7 @@ model Wallet {
 enum TransactionType {
   INCOME
   EXPENSE
+  Transfer
 }
 
 model Category {

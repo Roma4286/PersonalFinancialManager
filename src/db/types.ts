@@ -9,7 +9,7 @@ export type Numeric = ColumnType<string, number | string, number | string>;
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
-export type Transactiontype = 'EXPENSE' | 'INCOME';
+export type Transactiontype = 'EXPENSE' | 'INCOME' | 'Transfer';
 
 export interface _PrismaMigrations {
   applied_steps_count: Generated<number>;
