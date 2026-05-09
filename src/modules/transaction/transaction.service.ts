@@ -9,6 +9,9 @@ import { Prisma, Transaction, TransactionType } from '@prisma/client';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { TransactionFilterDto } from './dto/get-transactions.dto';
 import { WalletService } from '../wallet/wallet.service';
+import { CreateTransferDto } from './dto/create-transfer.dto';
+import { KyselyService } from '../kysely/kysely.service';
+import { createId } from '@paralleldrive/cuid2';
 
 @Injectable()
 export class TransactionService {
@@ -16,6 +19,7 @@ export class TransactionService {
   MAX_PAGE_SIZE = 1000;
   constructor(
     private prisma: PrismaService,
+    private kysely: KyselyService,
     private walletService: WalletService,
   ) {}
 
@@ -248,5 +252,76 @@ export class TransactionService {
       },
       { isolationLevel: 'Serializable' },
     );
+  }
+
+  async createNewTransfer(dto: CreateTransferDto) {
+    return await this.kysely.transaction().execute(async (tx) => {
+      const result = await tx
+        .updateTable('Wallet')
+        .set((eb) => ({
+          balance: eb('balance', '-', dto.amount.toString()),
+        }))
+        .where('id', '=', dto.oldWalletId)
+        .where('balance', '>=', dto.amount.toString())
+        .executeTakeFirst();
+
+      if (!result) {
+        throw new BadRequestException('Insufficient funds');
+      }
+
+      const transferGroupId = createId();
+
+      const categoryExpenseTransfer = await tx
+        .selectFrom('Category')
+        .select('id')
+        .where('type', '=', 'EXPENSE')
+        .where('name', '=', 'Transfer')
+        .executeTakeFirst();
+
+      if (categoryExpenseTransfer) {
+        await tx
+          .insertInto('Transaction')
+          .values({
+            id: createId(),
+            updatedAt: new Date(),
+            categoryId: categoryExpenseTransfer.id,
+            walletId: dto.oldWalletId,
+            description: dto.description,
+            amount: dto.amount,
+            transferGroupId: transferGroupId,
+          })
+          .execute();
+      }
+
+      await tx
+        .updateTable('Wallet')
+        .set((eb) => ({
+          balance: eb('balance', '+', dto.amount.toString()),
+        }))
+        .where('id', '=', dto.newWalletId)
+        .execute();
+
+      const categoryIncomeTransfer = await tx
+        .selectFrom('Category')
+        .select('id')
+        .where('type', '=', 'INCOME')
+        .where('name', '=', 'Transfer')
+        .executeTakeFirst();
+
+      if (categoryIncomeTransfer) {
+        await tx
+          .insertInto('Transaction')
+          .values({
+            id: createId(),
+            updatedAt: new Date(),
+            categoryId: categoryIncomeTransfer.id,
+            walletId: dto.newWalletId,
+            description: dto.description,
+            amount: dto.amount,
+            transferGroupId: transferGroupId,
+          })
+          .execute();
+      }
+    });
   }
 }

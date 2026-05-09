@@ -9,6 +9,7 @@ import {
   HttpStatus,
   Query,
   Patch,
+  BadRequestException,
 } from '@nestjs/common';
 import { TransactionService } from './transaction.service';
 import { ApiResponse } from '@nestjs/swagger';
@@ -20,6 +21,7 @@ import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { IdParamDto } from './dto/get-id.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { TransactionFilterDto } from './dto/get-transactions.dto';
+import { CreateTransferDto } from './dto/create-transfer.dto';
 
 @Controller('/transactions')
 export class TransactionController {
@@ -58,6 +60,18 @@ export class TransactionController {
   @ApiResponse({ status: 404, description: 'Invalid category or wallet Id' })
   async createNewTransaction(@Body() transactionDto: CreateTransactionDto) {
     return await this.transactionService.createNewTransaction(transactionDto);
+  }
+
+  @Post('/transfer')
+  @HttpCode(HttpStatus.CREATED)
+  async createNewTransfer(@Body() transferDto: CreateTransferDto) {
+    if (transferDto.oldWalletId === transferDto.newWalletId) {
+      throw new BadRequestException(
+        'The oldWalletId and newWalletId should not be the same',
+      );
+    }
+
+    return await this.transactionService.createNewTransfer(transferDto);
   }
 
   @Patch('/:id')
