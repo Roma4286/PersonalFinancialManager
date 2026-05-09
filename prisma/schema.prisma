@@ -20,7 +20,6 @@ model Wallet {
 enum TransactionType {
   INCOME
   EXPENSE
-  Transfer
 }
 
 model Category {
@@ -41,6 +40,8 @@ model Transaction {
   description String?
   date        DateTime @default(now())
 
+  transferGroupId String?
+
   wallet   Wallet @relation(fields: [walletId], references: [id], onDelete: Restrict)
   walletId String
 
@@ -52,4 +53,5 @@ model Transaction {
 
   @@index([walletId])
   @@index([categoryId])
+  @@index([transferGroupId])
 }

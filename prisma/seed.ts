@@ -9,6 +9,8 @@ async function main() {
     { name: 'Food', type: TransactionType.EXPENSE },
     { name: 'Transport', type: TransactionType.EXPENSE },
     { name: 'Salary', type: TransactionType.INCOME },
+    { name: 'Transfer', type: TransactionType.EXPENSE },
+    { name: 'Transfer', type: TransactionType.INCOME },
   ];
 
   for (const category of categories) {
