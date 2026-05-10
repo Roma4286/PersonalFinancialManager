@@ -1,4 +1,5 @@
 import {
+  IsDateString,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -22,6 +23,10 @@ export class CreateTransferDto {
   @IsNumber()
   @IsPositive({ message: 'Amount must be > 0' })
   readonly amount!: number;
+
+  @IsOptional()
+  @IsDateString()
+  readonly date?: string;
 
   @IsOptional()
   @IsString()

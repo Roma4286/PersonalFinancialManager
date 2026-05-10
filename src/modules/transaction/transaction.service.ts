@@ -338,6 +338,7 @@ export class TransactionService {
             walletId: dto.newWalletId,
             description: dto.description,
             amount: dto.amount,
+            date: dto.date,
             transferGroupId: transferGroupId,
           })
           .execute();
