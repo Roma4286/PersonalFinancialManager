@@ -22,6 +22,7 @@ import { IdParamDto } from './dto/get-id.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { TransactionFilterDto } from './dto/get-transactions.dto';
 import { CreateTransferDto } from './dto/create-transfer.dto';
+import { DeleteTransferDto } from './dto/delete-tranfer.dto';
 
 @Controller('/transactions')
 export class TransactionController {
@@ -107,5 +108,16 @@ export class TransactionController {
       );
     }
     return await this.transactionService.createNewTransfer(transferDto);
+  }
+
+  @Delete('transfer/:transferGroupId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiResponse({
+    status: 204,
+    description: 'Remove transaction.',
+  })
+  @ApiResponse({ status: 404, description: 'Invalid Id.' })
+  async deleteTransfer(@Param() params: DeleteTransferDto) {
+    await this.transactionService.deleteTransfer(params.transferGroupId);
   }
 }

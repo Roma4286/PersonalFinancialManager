@@ -344,4 +344,56 @@ export class TransactionService {
       }
     });
   }
+
+  async deleteTransfer(transferGroupId: string) {
+    return await this.kysely.transaction().execute(async (tx) => {
+      const transactions = await tx
+        .selectFrom('Transaction')
+        .innerJoin('Category', 'Category.id', 'Transaction.categoryId')
+        .select([
+          'Transaction.id',
+          'Transaction.walletId',
+          'Transaction.amount',
+          'Category.type',
+        ])
+        .where('transferGroupId', '=', transferGroupId)
+        .execute();
+
+      if (transactions.length !== 2) {
+        throw new NotFoundException(`Transfer ${transferGroupId} not found`);
+      }
+
+      for (const transaction of transactions) {
+        if (transaction.type === 'EXPENSE') {
+          await tx
+            .updateTable('Wallet')
+            .set((eb) => ({
+              balance: eb('balance', '+', transaction.amount),
+            }))
+            .where('id', '=', transaction.walletId)
+            .executeTakeFirst();
+        } else {
+          const result = await tx
+            .updateTable('Wallet')
+            .set((eb) => ({
+              balance: eb('balance', '-', transaction.amount),
+            }))
+            .where('id', '=', transaction.walletId)
+            .where('balance', '>=', transaction.amount)
+            .executeTakeFirst();
+
+          if (Number(result.numUpdatedRows) === 0) {
+            throw new BadRequestException(
+              'Insufficient funds to rollback transfer',
+            );
+          }
+        }
+      }
+
+      await tx
+        .deleteFrom('Transaction')
+        .where('transferGroupId', '=', transferGroupId)
+        .execute();
+    });
+  }
 }
