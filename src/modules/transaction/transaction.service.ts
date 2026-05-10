@@ -256,6 +256,26 @@ export class TransactionService {
 
   async createNewTransfer(dto: CreateTransferDto) {
     return await this.kysely.transaction().execute(async (tx) => {
+      const wallets = await tx
+        .selectFrom('Wallet')
+        .select(['id'])
+        .where('id', 'in', [dto.oldWalletId, dto.newWalletId])
+        .execute();
+
+      const walletIds = new Set(wallets.map((w) => w.id));
+
+      if (!walletIds.has(dto.oldWalletId)) {
+        throw new NotFoundException(
+          `The wallet with id ${dto.oldWalletId} not found`,
+        );
+      }
+
+      if (!walletIds.has(dto.newWalletId)) {
+        throw new NotFoundException(
+          `The wallet with id ${dto.newWalletId} not found`,
+        );
+      }
+
       const result = await tx
         .updateTable('Wallet')
         .set((eb) => ({
@@ -265,7 +285,7 @@ export class TransactionService {
         .where('balance', '>=', dto.amount.toString())
         .executeTakeFirst();
 
-      if (!result) {
+      if (Number(result.numUpdatedRows) === 0) {
         throw new BadRequestException('Insufficient funds');
       }
 

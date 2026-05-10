@@ -62,18 +62,6 @@ export class TransactionController {
     return await this.transactionService.createNewTransaction(transactionDto);
   }
 
-  @Post('/transfer')
-  @HttpCode(HttpStatus.CREATED)
-  async createNewTransfer(@Body() transferDto: CreateTransferDto) {
-    if (transferDto.oldWalletId === transferDto.newWalletId) {
-      throw new BadRequestException(
-        'The oldWalletId and newWalletId should not be the same',
-      );
-    }
-
-    return await this.transactionService.createNewTransfer(transferDto);
-  }
-
   @Patch('/:id')
   @HttpCode(HttpStatus.OK)
   @ApiResponse({
@@ -102,5 +90,22 @@ export class TransactionController {
   @ApiResponse({ status: 404, description: 'Invalid Id.' })
   async deleteTransaction(@Param() params: IdParamDto) {
     await this.transactionService.deleteTransaction(params.id);
+  }
+
+  @Post('/transfer')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiResponse({
+    status: 201,
+    description: 'The record has been successfully created.',
+  })
+  @ApiResponse({ status: 400, description: 'Bad Request.' })
+  @ApiResponse({ status: 404, description: 'Invalid wallet Id' })
+  async createNewTransfer(@Body() transferDto: CreateTransferDto) {
+    if (transferDto.oldWalletId === transferDto.newWalletId) {
+      throw new BadRequestException(
+        'The oldWalletId and newWalletId should not be the same',
+      );
+    }
+    return await this.transactionService.createNewTransfer(transferDto);
   }
 }
