@@ -12,6 +12,7 @@ import { WalletService } from '../wallet/wallet.service';
 import { CreateTransferDto } from './dto/create-transfer.dto';
 import { KyselyService } from '../kysely/kysely.service';
 import { createId } from '@paralleldrive/cuid2';
+import { UpdateTransferDto } from './dto/update-transfer.dto';
 
 @Injectable()
 export class TransactionService {
@@ -343,6 +344,79 @@ export class TransactionService {
           })
           .execute();
       }
+    });
+  }
+
+  async updateTransfer(transferGroupId: string, dto: UpdateTransferDto) {
+    return await this.kysely.transaction().execute(async (tx) => {
+      const transactions = await tx
+        .selectFrom('Transaction')
+        .innerJoin('Category', 'Category.id', 'Transaction.categoryId')
+        .select([
+          'Transaction.id',
+          'Transaction.walletId',
+          'Transaction.amount',
+          'Category.type',
+        ])
+        .where('transferGroupId', '=', transferGroupId)
+        .execute();
+
+      if (transactions.length !== 2) {
+        throw new NotFoundException(`Transfer ${transferGroupId} not found`);
+      }
+
+      if (dto.amount !== Number(transactions[0].amount)) {
+        const delta = dto.amount - Number(transactions[0].amount);
+        for (const transaction of transactions) {
+          if (transaction.type === 'EXPENSE') {
+            const result = await tx
+              .updateTable('Wallet')
+              .set((eb) => ({
+                balance: eb('balance', '-', delta.toString()),
+              }))
+              .where('id', '=', transaction.walletId)
+              .where('balance', '>=', delta > 0 ? delta.toString() : '0')
+              .executeTakeFirst();
+
+            if (delta > 0 && Number(result.numUpdatedRows) === 0) {
+              throw new BadRequestException('Insufficient funds');
+            }
+          } else {
+            const result = await tx
+              .updateTable('Wallet')
+              .set((eb) => ({
+                balance: eb('balance', '+', delta.toString()),
+              }))
+              .where('id', '=', transaction.walletId)
+              .where('balance', '>=', delta < 0 ? (-delta).toString() : '0')
+              .executeTakeFirst();
+
+            if (Number(result.numUpdatedRows) === 0) {
+              throw new BadRequestException(
+                'Insufficient funds to rollback transfer',
+              );
+            }
+          }
+        }
+      }
+
+      const updateData = {
+        ...(dto.date !== undefined && {
+          date: dto.date,
+        }),
+        ...(dto.description !== undefined && {
+          description: dto.description,
+        }),
+        ...(dto.amount !== undefined && {
+          amount: dto.amount,
+        }),
+      };
+
+      await tx
+        .updateTable('Transaction')
+        .set(updateData)
+        .where('transferGroupId', '=', transferGroupId)
+        .execute();
     });
   }
 

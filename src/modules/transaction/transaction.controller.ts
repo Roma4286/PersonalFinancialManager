@@ -23,6 +23,7 @@ import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { TransactionFilterDto } from './dto/get-transactions.dto';
 import { CreateTransferDto } from './dto/create-transfer.dto';
 import { DeleteTransferDto } from './dto/delete-tranfer.dto';
+import { UpdateTransferDto } from './dto/update-transfer.dto';
 
 @Controller('/transactions')
 export class TransactionController {
@@ -108,6 +109,20 @@ export class TransactionController {
       );
     }
     return await this.transactionService.createNewTransfer(transferDto);
+  }
+
+  @Patch('transfer/:transferGroupId')
+  @HttpCode(HttpStatus.OK)
+  @ApiResponse({ status: 400, description: 'Bad Request.' })
+  @ApiResponse({
+    status: 404,
+    description: 'Invalid transferGroupId Id',
+  })
+  async updateTransfer(
+    @Param('transferGroupId') transferGroupId: string,
+    @Body() dto: UpdateTransferDto,
+  ) {
+    return await this.transactionService.updateTransfer(transferGroupId, dto);
   }
 
   @Delete('transfer/:transferGroupId')
