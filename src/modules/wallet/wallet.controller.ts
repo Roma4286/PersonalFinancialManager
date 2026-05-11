@@ -1,8 +1,9 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiResponse } from '@nestjs/swagger';
 import { WalletService } from './wallet.service';
 import { BalanceResponse, Wallet } from './dto/response-wallet.dto';
 import { GetBalanceDto } from './dto/get-balance.dto';
+import { StatsFiltersDto } from './dto/get-stats.dto';
 
 @Controller('/wallets')
 export class WalletController {
@@ -30,5 +31,16 @@ export class WalletController {
     return {
       totalBalance: await this.walletService.getBalance(params.id),
     };
+  }
+
+  @Get('/stats')
+  @ApiResponse({
+    status: 200,
+    description: 'Retrieve all items.',
+    // type: TransactionWithCategory,
+    // isArray: true,
+  })
+  async getAllTransactions(@Query() query: StatsFiltersDto) {
+    return await this.walletService.getStats(query);
   }
 }
