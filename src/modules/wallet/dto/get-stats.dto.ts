@@ -1,4 +1,10 @@
-import { IsDateString, IsNotEmpty, IsString, Length } from 'class-validator';
+import {
+  IsDateString,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Length,
+} from 'class-validator';
 
 export class StatsFiltersDto {
   @IsString()
@@ -7,8 +13,10 @@ export class StatsFiltersDto {
   readonly walletId!: string;
 
   @IsDateString()
-  readonly from!: string;
+  @IsOptional()
+  readonly from?: string;
 
   @IsDateString()
-  readonly to!: string;
+  @IsOptional()
+  readonly to?: string;
 }

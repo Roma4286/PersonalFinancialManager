@@ -41,12 +41,7 @@ export class WalletService {
   }
 
   async getStats(query: StatsFiltersDto) {
-    const fromDate = new Date(query.from);
-    const toDate = new Date(query.to);
-
-    toDate.setDate(toDate.getDate() + 1);
-
-    const result = await this.kysely
+    let qb = this.kysely
       .selectFrom('Transaction')
       .innerJoin('Category', 'Category.id', 'Transaction.categoryId')
       .select([
@@ -54,11 +49,21 @@ export class WalletService {
         (eb) => eb.fn.sum('amount').as('totalAmount'),
         'Category.type',
       ])
-      .where('date', '>=', fromDate)
-      .where('date', '<', toDate)
       .where('Transaction.walletId', '=', query.walletId)
-      .groupBy(['Transaction.categoryId', 'Category.name', 'Category.type'])
-      .execute();
+      .groupBy(['Transaction.categoryId', 'Category.name', 'Category.type']);
+
+    if (query.from) {
+      qb = qb.where('date', '>=', new Date(query.from));
+    }
+
+    if (query.to) {
+      const toDate = new Date(query.to);
+
+      toDate.setDate(toDate.getDate() + 1);
+      qb = qb.where('date', '<', toDate);
+    }
+
+    const result = await qb.execute();
 
     return result.map((item) => ({
       ...item,
