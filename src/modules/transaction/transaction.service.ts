@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
@@ -309,9 +310,14 @@ export class TransactionService {
             walletId: dto.oldWalletId,
             description: dto.description,
             amount: dto.amount,
+            date: dto.date,
             transferGroupId: transferGroupId,
           })
           .execute();
+      } else {
+        throw new InternalServerErrorException(
+          'No exception category for transfer',
+        );
       }
 
       await tx
@@ -343,6 +349,10 @@ export class TransactionService {
             transferGroupId: transferGroupId,
           })
           .execute();
+      } else {
+        throw new InternalServerErrorException(
+          'No income category for transfer',
+        );
       }
     });
   }
