@@ -1,3 +1,5 @@
+import { TransactionType } from '@/modules/category/dto/response-category.dto';
+
 export class Wallet {
   readonly id!: string;
   readonly name!: string;
@@ -8,4 +10,10 @@ export class Wallet {
 
 export class BalanceResponse {
   readonly totalBalance!: string;
+}
+
+export class StatsResponse {
+  readonly type!: TransactionType;
+  readonly name!: string;
+  readonly totalAmount!: string;
 }

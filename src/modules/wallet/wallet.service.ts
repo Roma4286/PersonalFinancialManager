@@ -60,6 +60,9 @@ export class WalletService {
       .groupBy(['Transaction.categoryId', 'Category.name', 'Category.type'])
       .execute();
 
-    return result;
+    return result.map((item) => ({
+      ...item,
+      totalAmount: String(item.totalAmount),
+    }));
   }
 }

@@ -1,7 +1,11 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiResponse } from '@nestjs/swagger';
 import { WalletService } from './wallet.service';
-import { BalanceResponse, Wallet } from './dto/response-wallet.dto';
+import {
+  BalanceResponse,
+  StatsResponse,
+  Wallet,
+} from './dto/response-wallet.dto';
 import { GetBalanceDto } from './dto/get-balance.dto';
 import { StatsFiltersDto } from './dto/get-stats.dto';
 
@@ -37,10 +41,10 @@ export class WalletController {
   @ApiResponse({
     status: 200,
     description: 'Retrieve all items.',
-    // type: TransactionWithCategory,
-    // isArray: true,
+    type: StatsResponse,
+    isArray: true,
   })
-  async getAllTransactions(@Query() query: StatsFiltersDto) {
+  async getStats(@Query() query: StatsFiltersDto) {
     return await this.walletService.getStats(query);
   }
 }
