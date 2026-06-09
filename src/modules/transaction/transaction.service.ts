@@ -380,7 +380,10 @@ export class TransactionService {
         throw new NotFoundException(`Transfer ${transferGroupId} not found`);
       }
 
-      if (dto.amount !== Number(transactions[0].amount)) {
+      if (
+        dto.amount !== undefined &&
+        dto.amount !== Number(transactions[0].amount)
+      ) {
         const delta = dto.amount - Number(transactions[0].amount);
         for (const transaction of transactions) {
           if (transaction.type === TransactionType.EXPENSE) {
