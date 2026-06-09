@@ -1,3 +1,4 @@
+import { TransactionType } from '@/modules/category/dto/response-category.dto';
 import { Type } from 'class-transformer';
 import {
   IsDateString,
@@ -8,11 +9,6 @@ import {
   Length,
   Min,
 } from 'class-validator';
-
-enum TransactionType {
-  INCOME = 'INCOME',
-  EXPENSE = 'EXPENSE',
-}
 
 export class TransactionFilterDto {
   @Type(() => Number)

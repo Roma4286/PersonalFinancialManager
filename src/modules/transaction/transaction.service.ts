@@ -55,7 +55,7 @@ export class TransactionService {
         ...((filters.from || filters.to) && {
           date: {
             ...(filters.from && { gte: new Date(filters.from) }),
-            ...(filters.to && { lte: new Date(filters.to + 'T23:59:59.999Z') }),
+            ...(filters.to && { lte: new Date(filters.to) }),
           },
         }),
       },
@@ -257,6 +257,11 @@ export class TransactionService {
   }
 
   async createNewTransfer(dto: CreateTransferDto) {
+    if (dto.oldWalletId === dto.newWalletId) {
+      throw new BadRequestException(
+        'The oldWalletId and newWalletId should not be the same',
+      );
+    }
     return await this.kysely.transaction().execute(async (tx) => {
       const wallets = await tx
         .selectFrom('Wallet')

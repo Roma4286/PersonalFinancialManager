@@ -9,7 +9,6 @@ import {
   HttpStatus,
   Query,
   Patch,
-  BadRequestException,
 } from '@nestjs/common';
 import { TransactionService } from './transaction.service';
 import { ApiResponse } from '@nestjs/swagger';
@@ -22,7 +21,7 @@ import { IdParamDto } from './dto/get-id.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { TransactionFilterDto } from './dto/get-transactions.dto';
 import { CreateTransferDto } from './dto/create-transfer.dto';
-import { DeleteTransferDto } from './dto/delete-tranfer.dto';
+import { DeleteTransferDto } from './dto/delete-transfer.dto';
 import { UpdateTransferDto } from './dto/update-transfer.dto';
 
 @Controller('/transactions')
@@ -103,11 +102,6 @@ export class TransactionController {
   @ApiResponse({ status: 400, description: 'Bad Request.' })
   @ApiResponse({ status: 404, description: 'Invalid wallet Id' })
   async createNewTransfer(@Body() transferDto: CreateTransferDto) {
-    if (transferDto.oldWalletId === transferDto.newWalletId) {
-      throw new BadRequestException(
-        'The oldWalletId and newWalletId should not be the same',
-      );
-    }
     return await this.transactionService.createNewTransfer(transferDto);
   }
 
