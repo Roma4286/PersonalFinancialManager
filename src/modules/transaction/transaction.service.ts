@@ -336,7 +336,7 @@ export class TransactionService {
       const categoryIncomeTransfer = await tx
         .selectFrom('Category')
         .select('id')
-        .where('type', '=', 'INCOME')
+        .where('type', '=', TransactionType.INCOME)
         .where('name', '=', 'Transfer')
         .executeTakeFirst();
 
@@ -383,7 +383,7 @@ export class TransactionService {
       if (dto.amount !== Number(transactions[0].amount)) {
         const delta = dto.amount - Number(transactions[0].amount);
         for (const transaction of transactions) {
-          if (transaction.type === 'EXPENSE') {
+          if (transaction.type === TransactionType.EXPENSE) {
             const result = await tx
               .updateTable('Wallet')
               .set((eb) => ({
@@ -454,7 +454,7 @@ export class TransactionService {
       }
 
       for (const transaction of transactions) {
-        if (transaction.type === 'EXPENSE') {
+        if (transaction.type === TransactionType.EXPENSE) {
           await tx
             .updateTable('Wallet')
             .set((eb) => ({

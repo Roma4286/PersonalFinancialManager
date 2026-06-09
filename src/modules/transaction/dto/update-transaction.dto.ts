@@ -1,9 +1,11 @@
 import {
   IsDateString,
+  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsPositive,
   IsString,
+  Length,
   MaxLength,
 } from 'class-validator';
 
@@ -22,5 +24,7 @@ export class UpdateTransactionDto {
   readonly date?: string;
 
   @IsString()
+  @IsNotEmpty()
+  @Length(24, 24)
   readonly categoryId!: string;
 }
