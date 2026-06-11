@@ -9,7 +9,8 @@
     "lint": "npx eslint . ",
     "lint:fix": "npx eslint . --fix",
     "docker:start": "docker-compose up -d",
-    "docker:stop": "docker-compose down -v"
+    "docker:stop": "docker-compose down -v",
+    "data-migration:copy-amount-and-balance-to-new-collumns": "tsx ./prisma/migrations/20260610172207_add_balance_in_cents_in_wallet_and_amount_in_cents_in/data-migration.ts"
   },
   "keywords": [],
   "author": "",
