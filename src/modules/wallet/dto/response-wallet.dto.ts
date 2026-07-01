@@ -1,4 +1,5 @@
-import { TransactionType } from '@/modules/category/dto/response-category.dto';
+import { TransactionType } from '@prisma/client';
+import { ApiProperty } from '@nestjs/swagger';
 import { Expose } from 'class-transformer';
 
 export class Wallet {
@@ -14,7 +15,10 @@ export class BalanceResponse {
 }
 
 export class StatsResponse {
-  @Expose() readonly type!: TransactionType;
+  @ApiProperty({ enum: TransactionType, enumName: 'TransactionType' })
+  @Expose()
+  readonly type!: TransactionType;
+
   @Expose() readonly name!: string;
   @Expose() readonly totalAmount!: string;
 }

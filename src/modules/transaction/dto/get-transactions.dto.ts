@@ -1,4 +1,5 @@
-import { TransactionType } from '@/modules/category/dto/response-category.dto';
+import { TransactionType } from '@prisma/client';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsDateString,
@@ -33,6 +34,7 @@ export class TransactionFilterDto {
   @Length(24, 24)
   readonly walletId?: string;
 
+  @ApiPropertyOptional({ enum: TransactionType, enumName: 'TransactionType' })
   @IsEnum(TransactionType)
   @IsOptional()
   readonly transactionType?: TransactionType;
