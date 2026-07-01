@@ -1,10 +1,6 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma, Wallet } from '@prisma/client';
+import { Wallet } from '@prisma/client';
 import { StatsFiltersDto } from './dto/get-stats.dto';
 import { KyselyService } from '../kysely/kysely.service';
 
@@ -33,12 +29,6 @@ export class WalletService {
 
     return String(wallet.balanceInCents);
   }
-
-  // validateSufficientFunds(wallet: Wallet, amount: Prisma.Decimal) {
-  //   if (wallet.balance.plus(amount).isNegative()) {
-  //     throw new BadRequestException('Insufficient funds');
-  //   }
-  // }
 
   async getStats(query: StatsFiltersDto) {
     let qb = this.kysely
