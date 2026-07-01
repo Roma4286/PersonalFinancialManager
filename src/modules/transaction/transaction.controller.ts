@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { TransactionService } from './transaction.service';
 import { ApiResponse } from '@nestjs/swagger';
+import { plainToInstance } from 'class-transformer';
 import {
   Transaction,
   TransactionWithCategory,
@@ -32,22 +33,31 @@ export class TransactionController {
   @ApiResponse({
     status: 200,
     description: 'Retrieve all items.',
-    type: TransactionWithCategory,
+    type: Transaction,
     isArray: true,
   })
   async getAllTransactions(@Query() query: TransactionFilterDto) {
-    return await this.transactionService.getAllTransactions(query);
+    const transactions =
+      await this.transactionService.getAllTransactions(query);
+    return plainToInstance(Transaction, transactions, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @Get('/:id')
   @ApiResponse({
     status: 200,
     description: 'Retrieve one item.',
-    type: Transaction,
+    type: TransactionWithCategory,
   })
   @ApiResponse({ status: 404, description: 'Invalid Id.' })
   async getOneTransaction(@Param() params: IdParamDto) {
-    return await this.transactionService.getTransactionById(params.id);
+    const transaction = await this.transactionService.getTransactionById(
+      params.id,
+    );
+    return plainToInstance(TransactionWithCategory, transaction, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @Post('/')
@@ -60,7 +70,11 @@ export class TransactionController {
   @ApiResponse({ status: 400, description: 'Bad Request.' })
   @ApiResponse({ status: 404, description: 'Invalid category or wallet Id' })
   async createNewTransaction(@Body() transactionDto: CreateTransactionDto) {
-    return await this.transactionService.createNewTransaction(transactionDto);
+    const transaction =
+      await this.transactionService.createNewTransaction(transactionDto);
+    return plainToInstance(Transaction, transaction, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @Patch('/:id')
@@ -79,7 +93,13 @@ export class TransactionController {
     @Param('id') transactionId: string,
     @Body() dto: UpdateTransactionDto,
   ) {
-    return await this.transactionService.updateTransaction(transactionId, dto);
+    const transaction = await this.transactionService.updateTransaction(
+      transactionId,
+      dto,
+    );
+    return plainToInstance(Transaction, transaction, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @Delete('/:id')

@@ -1,5 +1,6 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiResponse } from '@nestjs/swagger';
+import { plainToInstance } from 'class-transformer';
 import { WalletService } from './wallet.service';
 import {
   BalanceResponse,
@@ -21,7 +22,8 @@ export class WalletController {
     isArray: true,
   })
   async getAllWallets() {
-    return await this.walletService.getAllWallets();
+    const wallets = await this.walletService.getAllWallets();
+    return plainToInstance(Wallet, wallets, { excludeExtraneousValues: true });
   }
 
   @Get('/:id/balance')
@@ -32,9 +34,12 @@ export class WalletController {
   })
   @ApiResponse({ status: 404, description: 'Invalid wallet Id.' })
   async getBalance(@Param() params: GetBalanceDto) {
-    return {
-      totalBalance: await this.walletService.getBalance(params.id),
-    };
+    const totalBalance = await this.walletService.getBalance(params.id);
+    return plainToInstance(
+      BalanceResponse,
+      { totalBalance },
+      { excludeExtraneousValues: true },
+    );
   }
 
   @Get('/stats')
@@ -45,6 +50,9 @@ export class WalletController {
     isArray: true,
   })
   async getStats(@Query() query: StatsFiltersDto) {
-    return await this.walletService.getStats(query);
+    const stats = await this.walletService.getStats(query);
+    return plainToInstance(StatsResponse, stats, {
+      excludeExtraneousValues: true,
+    });
   }
 }
