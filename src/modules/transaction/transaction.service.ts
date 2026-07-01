@@ -129,11 +129,13 @@ export class TransactionService {
   async updateTransaction(transactionId: string, dto: UpdateTransactionDto) {
     return await this.prisma.$transaction(
       async (tx) => {
-        const oldTransaction = await tx.transaction.findUnique({
-          where: {
-            id: transactionId,
-          },
-        });
+        const [oldTransaction, category] = await Promise.all([
+          tx.transaction.findUnique({
+            where: { id: transactionId },
+            include: { category: true },
+          }),
+          tx.category.findUnique({ where: { id: dto.categoryId } }),
+        ]);
 
         if (!oldTransaction) {
           throw new NotFoundException(
@@ -141,42 +143,14 @@ export class TransactionService {
           );
         }
 
-        const category = await tx.category.findUnique({
-          where: { id: dto.categoryId },
-        });
-
         if (!category) {
           throw new NotFoundException(
             `The category with id ${dto.categoryId} not found`,
           );
         }
 
-        const oldCategory = await tx.category.findUnique({
-          where: {
-            id: oldTransaction.categoryId,
-          },
-        });
-
-        if (!oldCategory) {
-          throw new NotFoundException(
-            `The category to which this transaction belongs cannot be found`,
-          );
-        }
-
-        const wallet = await tx.wallet.findUnique({
-          where: {
-            id: oldTransaction.walletId,
-          },
-        });
-
-        if (!wallet) {
-          throw new NotFoundException(
-            `The wallet to which this transaction belongs cannot be found`,
-          );
-        }
-
         const oldEffect =
-          oldCategory.type === TransactionType.EXPENSE
+          oldTransaction.category.type === TransactionType.EXPENSE
             ? oldTransaction.amountInCents
             : -oldTransaction.amountInCents;
 
@@ -213,6 +187,7 @@ export class TransactionService {
       async (tx) => {
         const transaction = await tx.transaction.findUnique({
           where: { id: transactionId },
+          include: { category: true },
         });
 
         if (!transaction) {
@@ -221,25 +196,15 @@ export class TransactionService {
           );
         }
 
-        const category = await tx.category.findUnique({
-          where: { id: transaction.categoryId },
-        });
+        const balanceDelta =
+          transaction.category.type === TransactionType.EXPENSE
+            ? transaction.amountInCents
+            : -transaction.amountInCents;
 
-        const wallet = await tx.wallet.findUnique({
+        await tx.wallet.update({
           where: { id: transaction.walletId },
+          data: { balanceInCents: { increment: balanceDelta } },
         });
-
-        if (category && wallet) {
-          const balanceDelta =
-            category.type === TransactionType.EXPENSE
-              ? transaction.amountInCents
-              : -transaction.amountInCents;
-
-          await tx.wallet.update({
-            where: { id: transaction.walletId },
-            data: { balanceInCents: { increment: balanceDelta } },
-          });
-        }
 
         return await tx.transaction.delete({
           where: { id: transaction.id },
