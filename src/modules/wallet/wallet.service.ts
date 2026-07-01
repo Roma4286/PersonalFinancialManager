@@ -23,7 +23,7 @@ export class WalletService {
     const wallet = await this.prisma.wallet.findUnique({
       where: { id: walletId },
       select: {
-        balance: true,
+        balanceInCents: true,
       },
     });
 
@@ -31,14 +31,14 @@ export class WalletService {
       throw new NotFoundException(`The wallet with id ${walletId} not found`);
     }
 
-    return String(wallet.balance);
+    return String(wallet.balanceInCents);
   }
 
-  validateSufficientFunds(wallet: Wallet, amount: Prisma.Decimal) {
-    if (wallet.balance.plus(amount).isNegative()) {
-      throw new BadRequestException('Insufficient funds');
-    }
-  }
+  // validateSufficientFunds(wallet: Wallet, amount: Prisma.Decimal) {
+  //   if (wallet.balance.plus(amount).isNegative()) {
+  //     throw new BadRequestException('Insufficient funds');
+  //   }
+  // }
 
   async getStats(query: StatsFiltersDto) {
     let qb = this.kysely
@@ -46,7 +46,7 @@ export class WalletService {
       .innerJoin('Category', 'Category.id', 'Transaction.categoryId')
       .select([
         'Category.name',
-        (eb) => eb.fn.sum('amount').as('totalAmount'),
+        (eb) => eb.fn.sum('amountInCents').as('totalAmount'),
         'Category.type',
       ])
       .where('Transaction.walletId', '=', query.walletId)

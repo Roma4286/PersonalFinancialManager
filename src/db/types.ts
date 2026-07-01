@@ -5,8 +5,6 @@ export type Generated<T> =
     ? ColumnType<S, I | undefined, U>
     : ColumnType<T, T | undefined, T>;
 
-export type Numeric = ColumnType<string, number | string, number | string>;
-
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
 export type Transactiontype = 'EXPENSE' | 'INCOME';
@@ -31,7 +29,7 @@ export interface Category {
 }
 
 export interface Transaction {
-  amount: Numeric;
+  amountInCents: number;
   categoryId: string;
   createdAt: Generated<Timestamp>;
   date: Generated<Timestamp>;
@@ -43,7 +41,7 @@ export interface Transaction {
 }
 
 export interface Wallet {
-  balance: Generated<Numeric>;
+  balanceInCents: Generated<number>;
   createdAt: Generated<Timestamp>;
   id: string;
   name: string;

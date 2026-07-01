@@ -6,10 +6,9 @@ import {
 } from '@nestjs/common';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma, Transaction, TransactionType } from '@prisma/client';
+import { Transaction, TransactionType } from '@prisma/client';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { TransactionFilterDto } from './dto/get-transactions.dto';
-import { WalletService } from '../wallet/wallet.service';
 import { CreateTransferDto } from './dto/create-transfer.dto';
 import { KyselyService } from '../kysely/kysely.service';
 import { createId } from '@paralleldrive/cuid2';
@@ -22,7 +21,6 @@ export class TransactionService {
   constructor(
     private prisma: PrismaService,
     private kysely: KyselyService,
-    private walletService: WalletService,
   ) {}
 
   async getAllTransactions(filters: TransactionFilterDto) {
@@ -102,22 +100,21 @@ export class TransactionService {
           );
         }
 
-        const balanceDelta = new Prisma.Decimal(
-          category.type === TransactionType.EXPENSE ? -dto.amount : dto.amount,
-        );
-
-        this.walletService.validateSufficientFunds(wallet, balanceDelta);
+        const balanceDelta =
+          category.type === TransactionType.EXPENSE
+            ? -dto.amountInCents
+            : dto.amountInCents;
 
         await tx.wallet.update({
           where: { id: dto.walletId },
-          data: { balance: { increment: balanceDelta } },
+          data: { balanceInCents: { increment: balanceDelta } },
         });
 
         const date = dto.date ? new Date(dto.date) : new Date();
 
         return await tx.transaction.create({
           data: {
-            amount: dto.amount,
+            amountInCents: dto.amountInCents,
             description: dto.description,
             date: date,
             walletId: dto.walletId,
@@ -180,26 +177,25 @@ export class TransactionService {
 
         const oldEffect =
           oldCategory.type === TransactionType.EXPENSE
-            ? oldTransaction.amount
-            : oldTransaction.amount.neg();
+            ? oldTransaction.amountInCents
+            : -oldTransaction.amountInCents;
 
         const newEffect =
           category.type === TransactionType.EXPENSE
-            ? new Prisma.Decimal(dto.amount).neg()
-            : new Prisma.Decimal(dto.amount);
+            ? -dto.amountInCents
+            : dto.amountInCents;
 
-        const balanceDelta = oldEffect.plus(newEffect);
-        this.walletService.validateSufficientFunds(wallet, balanceDelta);
+        const balanceDelta = oldEffect + newEffect;
 
         await tx.wallet.update({
           where: { id: oldTransaction.walletId },
-          data: { balance: { increment: balanceDelta } },
+          data: { balanceInCents: { increment: balanceDelta } },
         });
 
         return await tx.transaction.update({
           where: { id: transactionId },
           data: {
-            amount: dto.amount,
+            amountInCents: dto.amountInCents,
             description: dto.description,
             date: dto.date ? new Date(dto.date) : undefined,
             categoryId: dto.categoryId,
@@ -234,17 +230,14 @@ export class TransactionService {
         });
 
         if (category && wallet) {
-          const balanceDelta = new Prisma.Decimal(
+          const balanceDelta =
             category.type === TransactionType.EXPENSE
-              ? transaction.amount
-              : transaction.amount.neg(),
-          );
-
-          this.walletService.validateSufficientFunds(wallet, balanceDelta);
+              ? transaction.amountInCents
+              : -transaction.amountInCents;
 
           await tx.wallet.update({
             where: { id: transaction.walletId },
-            data: { balance: { increment: balanceDelta } },
+            data: { balanceInCents: { increment: balanceDelta } },
           });
         }
 
@@ -286,10 +279,10 @@ export class TransactionService {
       const result = await tx
         .updateTable('Wallet')
         .set((eb) => ({
-          balance: eb('balance', '-', dto.amount.toString()),
+          balanceInCents: eb('balanceInCents', '-', dto.amountInCents),
         }))
         .where('id', '=', dto.oldWalletId)
-        .where('balance', '>=', dto.amount.toString())
+        .where('balanceInCents', '>=', dto.amountInCents)
         .executeTakeFirst();
 
       if (Number(result.numUpdatedRows) === 0) {
@@ -314,7 +307,7 @@ export class TransactionService {
             categoryId: categoryExpenseTransfer.id,
             walletId: dto.oldWalletId,
             description: dto.description,
-            amount: dto.amount,
+            amountInCents: dto.amountInCents,
             date: dto.date,
             transferGroupId: transferGroupId,
           })
@@ -328,7 +321,7 @@ export class TransactionService {
       await tx
         .updateTable('Wallet')
         .set((eb) => ({
-          balance: eb('balance', '+', dto.amount.toString()),
+          balanceInCents: eb('balanceInCents', '+', dto.amountInCents),
         }))
         .where('id', '=', dto.newWalletId)
         .execute();
@@ -349,7 +342,7 @@ export class TransactionService {
             categoryId: categoryIncomeTransfer.id,
             walletId: dto.newWalletId,
             description: dto.description,
-            amount: dto.amount,
+            amountInCents: dto.amountInCents,
             date: dto.date,
             transferGroupId: transferGroupId,
           })
@@ -370,7 +363,7 @@ export class TransactionService {
         .select([
           'Transaction.id',
           'Transaction.walletId',
-          'Transaction.amount',
+          'Transaction.amountInCents',
           'Category.type',
         ])
         .where('transferGroupId', '=', transferGroupId)
@@ -381,39 +374,29 @@ export class TransactionService {
       }
 
       if (
-        dto.amount !== undefined &&
-        dto.amount !== Number(transactions[0].amount)
+        dto.amountInCents !== undefined &&
+        dto.amountInCents !== transactions[0].amountInCents
       ) {
-        const delta = dto.amount - Number(transactions[0].amount);
+        const delta = dto.amountInCents - transactions[0].amountInCents;
         for (const transaction of transactions) {
           if (transaction.type === TransactionType.EXPENSE) {
             const result = await tx
               .updateTable('Wallet')
               .set((eb) => ({
-                balance: eb('balance', '-', delta.toString()),
+                balanceInCents: eb('balanceInCents', '-', delta),
               }))
               .where('id', '=', transaction.walletId)
-              .where('balance', '>=', delta > 0 ? delta.toString() : '0')
+              .where('balanceInCents', '>=', delta > 0 ? delta : 0)
               .executeTakeFirst();
-
-            if (delta > 0 && Number(result.numUpdatedRows) === 0) {
-              throw new BadRequestException('Insufficient funds');
-            }
           } else {
             const result = await tx
               .updateTable('Wallet')
               .set((eb) => ({
-                balance: eb('balance', '+', delta.toString()),
+                balanceInCents: eb('balanceInCents', '+', delta),
               }))
               .where('id', '=', transaction.walletId)
-              .where('balance', '>=', delta < 0 ? (-delta).toString() : '0')
+              .where('balanceInCents', '>=', delta < 0 ? -delta : 0)
               .executeTakeFirst();
-
-            if (Number(result.numUpdatedRows) === 0) {
-              throw new BadRequestException(
-                'Insufficient funds to rollback transfer',
-              );
-            }
           }
         }
       }
@@ -425,16 +408,18 @@ export class TransactionService {
         ...(dto.description !== undefined && {
           description: dto.description,
         }),
-        ...(dto.amount !== undefined && {
-          amount: dto.amount,
+        ...(dto.amountInCents !== undefined && {
+          amountInCents: dto.amountInCents,
         }),
       };
 
-      await tx
-        .updateTable('Transaction')
-        .set(updateData)
-        .where('transferGroupId', '=', transferGroupId)
-        .execute();
+      if (Object.keys(updateData).length > 0) {
+        await tx
+          .updateTable('Transaction')
+          .set(updateData)
+          .where('transferGroupId', '=', transferGroupId)
+          .execute();
+      }
     });
   }
 
@@ -446,7 +431,7 @@ export class TransactionService {
         .select([
           'Transaction.id',
           'Transaction.walletId',
-          'Transaction.amount',
+          'Transaction.amountInCents',
           'Category.type',
         ])
         .where('transferGroupId', '=', transferGroupId)
@@ -461,7 +446,11 @@ export class TransactionService {
           await tx
             .updateTable('Wallet')
             .set((eb) => ({
-              balance: eb('balance', '+', transaction.amount),
+              balanceInCents: eb(
+                'balanceInCents',
+                '+',
+                transaction.amountInCents,
+              ),
             }))
             .where('id', '=', transaction.walletId)
             .executeTakeFirst();
@@ -469,17 +458,15 @@ export class TransactionService {
           const result = await tx
             .updateTable('Wallet')
             .set((eb) => ({
-              balance: eb('balance', '-', transaction.amount),
+              balanceInCents: eb(
+                'balanceInCents',
+                '-',
+                transaction.amountInCents,
+              ),
             }))
             .where('id', '=', transaction.walletId)
-            .where('balance', '>=', transaction.amount)
+            .where('balanceInCents', '>=', transaction.amountInCents)
             .executeTakeFirst();
-
-          if (Number(result.numUpdatedRows) === 0) {
-            throw new BadRequestException(
-              'Insufficient funds to rollback transfer',
-            );
-          }
         }
       }
 

@@ -22,7 +22,7 @@ export class CreateTransferDto {
 
   @IsNumber()
   @IsPositive({ message: 'Amount must be > 0' })
-  readonly amount!: number;
+  readonly amountInCents!: number;
 
   @IsOptional()
   @IsDateString()
