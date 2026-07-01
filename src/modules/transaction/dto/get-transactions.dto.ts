@@ -1,3 +1,4 @@
+import { IsCuid } from '@/common/decorators/is-cuid.decorator';
 import { TransactionType } from '@prisma/client';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -6,8 +7,6 @@ import {
   IsEnum,
   IsNumber,
   IsOptional,
-  IsString,
-  Length,
   Min,
 } from 'class-validator';
 
@@ -24,14 +23,12 @@ export class TransactionFilterDto {
   @IsOptional()
   readonly length?: number;
 
-  @IsString()
   @IsOptional()
-  @Length(24, 24)
+  @IsCuid()
   readonly categoryId?: string;
 
-  @IsString()
   @IsOptional()
-  @Length(24, 24)
+  @IsCuid()
   readonly walletId?: string;
 
   @ApiPropertyOptional({ enum: TransactionType, enumName: 'TransactionType' })

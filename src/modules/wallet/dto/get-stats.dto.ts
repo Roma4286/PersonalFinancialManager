@@ -1,15 +1,8 @@
-import {
-  IsDateString,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  Length,
-} from 'class-validator';
+import { IsCuid } from '@/common/decorators/is-cuid.decorator';
+import { IsDateString, IsOptional } from 'class-validator';
 
 export class StatsFiltersDto {
-  @IsString()
-  @IsNotEmpty()
-  @Length(24, 24)
+  @IsCuid()
   readonly walletId!: string;
 
   @IsDateString()

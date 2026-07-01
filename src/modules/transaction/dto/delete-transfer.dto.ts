@@ -1,8 +1,6 @@
-import { IsNotEmpty, IsString, Length } from 'class-validator';
+import { IsCuid } from '@/common/decorators/is-cuid.decorator';
 
 export class DeleteTransferDto {
-  @IsString()
-  @IsNotEmpty()
-  @Length(24, 24)
+  @IsCuid()
   readonly transferGroupId!: string;
 }

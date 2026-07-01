@@ -1,23 +1,18 @@
+import { IsCuid } from '@/common/decorators/is-cuid.decorator';
 import {
   IsDateString,
-  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsPositive,
   IsString,
-  Length,
   MaxLength,
 } from 'class-validator';
 
 export class CreateTransferDto {
-  @IsString()
-  @IsNotEmpty()
-  @Length(24, 24)
+  @IsCuid()
   readonly oldWalletId!: string;
 
-  @IsString()
-  @IsNotEmpty()
-  @Length(24, 24)
+  @IsCuid()
   readonly newWalletId!: string;
 
   @IsNumber()

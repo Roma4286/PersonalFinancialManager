@@ -1,11 +1,10 @@
+import { IsCuid } from '@/common/decorators/is-cuid.decorator';
 import {
   IsDateString,
-  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsPositive,
   IsString,
-  Length,
   MaxLength,
 } from 'class-validator';
 
@@ -23,8 +22,6 @@ export class UpdateTransactionDto {
   @IsDateString()
   readonly date?: string;
 
-  @IsString()
-  @IsNotEmpty()
-  @Length(24, 24)
+  @IsCuid()
   readonly categoryId!: string;
 }
