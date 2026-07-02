@@ -9,7 +9,11 @@
     "lint": "npx eslint . ",
     "lint:fix": "npx eslint . --fix",
     "docker:start": "docker-compose up -d",
-    "docker:stop": "docker-compose down -v"
+    "docker:stop": "docker-compose down -v",
+    "db:migrate": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
+    "db:generate": "prisma generate && npx prettier --write src/db/types.ts",
+    "setup": "npm run docker:start && npm run db:migrate && npm run db:seed && npm run db:generate"
   },
   "keywords": [],
   "author": "",
@@ -23,8 +27,9 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
     "globals": "^17.4.0",
-    "kysely-codegen": "^0.20.0",
     "prettier": "^3.8.1",
+    "prisma-kysely": "^2.3.0",
+    "tsx": "^4.22.5",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.56.1"
   },

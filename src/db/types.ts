@@ -1,56 +1,43 @@
 import type { ColumnType } from 'kysely';
-
 export type Generated<T> =
   T extends ColumnType<infer S, infer I, infer U>
     ? ColumnType<S, I | undefined, U>
     : ColumnType<T, T | undefined, T>;
-
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
-export type Transactiontype = 'EXPENSE' | 'INCOME';
-
-export interface _PrismaMigrations {
-  applied_steps_count: Generated<number>;
-  checksum: string;
-  finished_at: Timestamp | null;
-  id: string;
-  logs: string | null;
-  migration_name: string;
-  rolled_back_at: Timestamp | null;
-  started_at: Generated<Timestamp>;
-}
-
-export interface Category {
-  createdAt: Generated<Timestamp>;
+export const TransactionType = {
+  INCOME: 'INCOME',
+  EXPENSE: 'EXPENSE',
+} as const;
+export type TransactionType =
+  (typeof TransactionType)[keyof typeof TransactionType];
+export type Category = {
   id: string;
   name: string;
-  type: Transactiontype;
+  type: TransactionType;
+  createdAt: Generated<Timestamp>;
   updatedAt: Timestamp;
-}
-
-export interface Transaction {
+};
+export type Transaction = {
+  id: string;
   amountInCents: number;
+  description: string | null;
+  date: Generated<Timestamp>;
+  transferGroupId: string | null;
+  walletId: string;
   categoryId: string;
   createdAt: Generated<Timestamp>;
-  date: Generated<Timestamp>;
-  description: string | null;
-  id: string;
-  transferGroupId: string | null;
   updatedAt: Timestamp;
-  walletId: string;
-}
-
-export interface Wallet {
-  balanceInCents: Generated<number>;
-  createdAt: Generated<Timestamp>;
+};
+export type Wallet = {
   id: string;
   name: string;
+  balanceInCents: Generated<number>;
+  createdAt: Generated<Timestamp>;
   updatedAt: Timestamp;
-}
-
-export interface DB {
-  _prisma_migrations: _PrismaMigrations;
+};
+export type DB = {
   Category: Category;
   Transaction: Transaction;
   Wallet: Wallet;
-}
+};
