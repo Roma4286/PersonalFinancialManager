@@ -47,10 +47,7 @@ export class WalletService {
     }
 
     if (query.to) {
-      const toDate = new Date(query.to);
-
-      toDate.setDate(toDate.getDate() + 1);
-      qb = qb.where('date', '<', toDate);
+      qb = qb.where('date', '<=', new Date(query.to));
     }
 
     const result = await qb.execute();
