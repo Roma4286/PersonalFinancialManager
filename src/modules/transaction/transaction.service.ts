@@ -221,214 +221,223 @@ export class TransactionService {
         'The oldWalletId and newWalletId should not be the same',
       );
     }
-    return await this.kysely.transaction().execute(async (tx) => {
-      const wallets = await tx
-        .selectFrom('Wallet')
-        .select(['id'])
-        .where('id', 'in', [dto.oldWalletId, dto.newWalletId])
-        .execute();
-
-      const walletIds = new Set(wallets.map((w) => w.id));
-
-      if (!walletIds.has(dto.oldWalletId)) {
-        throw new NotFoundException(
-          `The wallet with id ${dto.oldWalletId} not found`,
-        );
-      }
-
-      if (!walletIds.has(dto.newWalletId)) {
-        throw new NotFoundException(
-          `The wallet with id ${dto.newWalletId} not found`,
-        );
-      }
-
-      await tx
-        .updateTable('Wallet')
-        .set((eb) => ({
-          balanceInCents: eb('balanceInCents', '-', dto.amountInCents),
-        }))
-        .where('id', '=', dto.oldWalletId)
-        .execute();
-
-      const transferGroupId = createId();
-
-      const categoryExpenseTransfer = await tx
-        .selectFrom('Category')
-        .select('id')
-        .where('type', '=', 'EXPENSE')
-        .where('name', '=', 'Transfer')
-        .executeTakeFirst();
-
-      if (categoryExpenseTransfer) {
-        await tx
-          .insertInto('Transaction')
-          .values({
-            id: createId(),
-            updatedAt: new Date(),
-            categoryId: categoryExpenseTransfer.id,
-            walletId: dto.oldWalletId,
-            description: dto.description,
-            amountInCents: -dto.amountInCents,
-            date: dto.date,
-            transferGroupId: transferGroupId,
-          })
+    return await this.kysely
+      .transaction()
+      .setIsolationLevel('serializable')
+      .execute(async (tx) => {
+        const wallets = await tx
+          .selectFrom('Wallet')
+          .select(['id'])
+          .where('id', 'in', [dto.oldWalletId, dto.newWalletId])
           .execute();
-      } else {
-        throw new InternalServerErrorException(
-          'No exception category for transfer',
-        );
-      }
 
-      await tx
-        .updateTable('Wallet')
-        .set((eb) => ({
-          balanceInCents: eb('balanceInCents', '+', dto.amountInCents),
-        }))
-        .where('id', '=', dto.newWalletId)
-        .execute();
+        const walletIds = new Set(wallets.map((w) => w.id));
 
-      const categoryIncomeTransfer = await tx
-        .selectFrom('Category')
-        .select('id')
-        .where('type', '=', TransactionType.INCOME)
-        .where('name', '=', 'Transfer')
-        .executeTakeFirst();
+        if (!walletIds.has(dto.oldWalletId)) {
+          throw new NotFoundException(
+            `The wallet with id ${dto.oldWalletId} not found`,
+          );
+        }
 
-      if (categoryIncomeTransfer) {
+        if (!walletIds.has(dto.newWalletId)) {
+          throw new NotFoundException(
+            `The wallet with id ${dto.newWalletId} not found`,
+          );
+        }
+
         await tx
-          .insertInto('Transaction')
-          .values({
-            id: createId(),
-            updatedAt: new Date(),
-            categoryId: categoryIncomeTransfer.id,
-            walletId: dto.newWalletId,
-            description: dto.description,
-            amountInCents: dto.amountInCents,
-            date: dto.date,
-            transferGroupId: transferGroupId,
-          })
+          .updateTable('Wallet')
+          .set((eb) => ({
+            balanceInCents: eb('balanceInCents', '-', dto.amountInCents),
+          }))
+          .where('id', '=', dto.oldWalletId)
           .execute();
-      } else {
-        throw new InternalServerErrorException(
-          'No income category for transfer',
-        );
-      }
-    });
+
+        const transferGroupId = createId();
+
+        const categoryExpenseTransfer = await tx
+          .selectFrom('Category')
+          .select('id')
+          .where('type', '=', 'EXPENSE')
+          .where('name', '=', 'Transfer')
+          .executeTakeFirst();
+
+        if (categoryExpenseTransfer) {
+          await tx
+            .insertInto('Transaction')
+            .values({
+              id: createId(),
+              updatedAt: new Date(),
+              categoryId: categoryExpenseTransfer.id,
+              walletId: dto.oldWalletId,
+              description: dto.description,
+              amountInCents: -dto.amountInCents,
+              date: dto.date,
+              transferGroupId: transferGroupId,
+            })
+            .execute();
+        } else {
+          throw new InternalServerErrorException(
+            'No exception category for transfer',
+          );
+        }
+
+        await tx
+          .updateTable('Wallet')
+          .set((eb) => ({
+            balanceInCents: eb('balanceInCents', '+', dto.amountInCents),
+          }))
+          .where('id', '=', dto.newWalletId)
+          .execute();
+
+        const categoryIncomeTransfer = await tx
+          .selectFrom('Category')
+          .select('id')
+          .where('type', '=', TransactionType.INCOME)
+          .where('name', '=', 'Transfer')
+          .executeTakeFirst();
+
+        if (categoryIncomeTransfer) {
+          await tx
+            .insertInto('Transaction')
+            .values({
+              id: createId(),
+              updatedAt: new Date(),
+              categoryId: categoryIncomeTransfer.id,
+              walletId: dto.newWalletId,
+              description: dto.description,
+              amountInCents: dto.amountInCents,
+              date: dto.date,
+              transferGroupId: transferGroupId,
+            })
+            .execute();
+        } else {
+          throw new InternalServerErrorException(
+            'No income category for transfer',
+          );
+        }
+      });
   }
 
   async updateTransfer(transferGroupId: string, dto: UpdateTransferDto) {
-    return await this.kysely.transaction().execute(async (tx) => {
-      const transactions = await tx
-        .selectFrom('Transaction')
-        .innerJoin('Category', 'Category.id', 'Transaction.categoryId')
-        .select([
-          'Transaction.id',
-          'Transaction.walletId',
-          'Transaction.amountInCents',
-          'Category.type',
-        ])
-        .where('transferGroupId', '=', transferGroupId)
-        .execute();
-
-      if (transactions.length !== 2) {
-        throw new NotFoundException(`Transfer ${transferGroupId} not found`);
-      }
-
-      const expenseLeg = transactions.find(
-        (transaction) => transaction.type === TransactionType.EXPENSE,
-      );
-      const incomeLeg = transactions.find(
-        (transaction) => transaction.type === TransactionType.INCOME,
-      );
-
-      if (!expenseLeg || !incomeLeg) {
-        throw new InternalServerErrorException(
-          `Transfer ${transferGroupId} is malformed`,
-        );
-      }
-
-      if (
-        dto.amountInCents !== undefined &&
-        dto.amountInCents !== incomeLeg.amountInCents
-      ) {
-        const delta = dto.amountInCents - incomeLeg.amountInCents;
-
-        await tx
-          .updateTable('Wallet')
-          .set((eb) => ({
-            balanceInCents: eb('balanceInCents', '-', delta),
-          }))
-          .where('id', '=', expenseLeg.walletId)
-          .execute();
-
-        await tx
-          .updateTable('Wallet')
-          .set((eb) => ({
-            balanceInCents: eb('balanceInCents', '+', delta),
-          }))
-          .where('id', '=', incomeLeg.walletId)
-          .execute();
-
-        await tx
-          .updateTable('Transaction')
-          .set({ amountInCents: -dto.amountInCents })
-          .where('id', '=', expenseLeg.id)
-          .execute();
-
-        await tx
-          .updateTable('Transaction')
-          .set({ amountInCents: dto.amountInCents })
-          .where('id', '=', incomeLeg.id)
-          .execute();
-      }
-
-      const commonUpdateData = {
-        ...(dto.date !== undefined && {
-          date: dto.date,
-        }),
-        ...(dto.description !== undefined && {
-          description: dto.description,
-        }),
-      };
-
-      if (Object.keys(commonUpdateData).length > 0) {
-        await tx
-          .updateTable('Transaction')
-          .set(commonUpdateData)
+    return await this.kysely
+      .transaction()
+      .setIsolationLevel('serializable')
+      .execute(async (tx) => {
+        const transactions = await tx
+          .selectFrom('Transaction')
+          .innerJoin('Category', 'Category.id', 'Transaction.categoryId')
+          .select([
+            'Transaction.id',
+            'Transaction.walletId',
+            'Transaction.amountInCents',
+            'Category.type',
+          ])
           .where('transferGroupId', '=', transferGroupId)
           .execute();
-      }
-    });
+
+        if (transactions.length !== 2) {
+          throw new NotFoundException(`Transfer ${transferGroupId} not found`);
+        }
+
+        const expenseLeg = transactions.find(
+          (transaction) => transaction.type === TransactionType.EXPENSE,
+        );
+        const incomeLeg = transactions.find(
+          (transaction) => transaction.type === TransactionType.INCOME,
+        );
+
+        if (!expenseLeg || !incomeLeg) {
+          throw new InternalServerErrorException(
+            `Transfer ${transferGroupId} is malformed`,
+          );
+        }
+
+        if (
+          dto.amountInCents !== undefined &&
+          dto.amountInCents !== incomeLeg.amountInCents
+        ) {
+          const delta = dto.amountInCents - incomeLeg.amountInCents;
+
+          await tx
+            .updateTable('Wallet')
+            .set((eb) => ({
+              balanceInCents: eb('balanceInCents', '-', delta),
+            }))
+            .where('id', '=', expenseLeg.walletId)
+            .execute();
+
+          await tx
+            .updateTable('Wallet')
+            .set((eb) => ({
+              balanceInCents: eb('balanceInCents', '+', delta),
+            }))
+            .where('id', '=', incomeLeg.walletId)
+            .execute();
+
+          await tx
+            .updateTable('Transaction')
+            .set({ amountInCents: -dto.amountInCents })
+            .where('id', '=', expenseLeg.id)
+            .execute();
+
+          await tx
+            .updateTable('Transaction')
+            .set({ amountInCents: dto.amountInCents })
+            .where('id', '=', incomeLeg.id)
+            .execute();
+        }
+
+        const commonUpdateData = {
+          ...(dto.date !== undefined && {
+            date: dto.date,
+          }),
+          ...(dto.description !== undefined && {
+            description: dto.description,
+          }),
+        };
+
+        if (Object.keys(commonUpdateData).length > 0) {
+          await tx
+            .updateTable('Transaction')
+            .set(commonUpdateData)
+            .where('transferGroupId', '=', transferGroupId)
+            .execute();
+        }
+      });
   }
 
   async deleteTransfer(transferGroupId: string) {
-    return await this.kysely.transaction().execute(async (tx) => {
-      const transactions = await tx
-        .selectFrom('Transaction')
-        .select(['id', 'walletId', 'amountInCents'])
-        .where('transferGroupId', '=', transferGroupId)
-        .execute();
+    return await this.kysely
+      .transaction()
+      .setIsolationLevel('serializable')
+      .execute(async (tx) => {
+        const transactions = await tx
+          .selectFrom('Transaction')
+          .select(['id', 'walletId', 'amountInCents'])
+          .where('transferGroupId', '=', transferGroupId)
+          .execute();
 
-      if (transactions.length !== 2) {
-        throw new NotFoundException(`Transfer ${transferGroupId} not found`);
-      }
+        if (transactions.length !== 2) {
+          throw new NotFoundException(`Transfer ${transferGroupId} not found`);
+        }
 
-      for (const transaction of transactions) {
-        const reversalDelta = -transaction.amountInCents;
+        for (const transaction of transactions) {
+          const reversalDelta = -transaction.amountInCents;
+
+          await tx
+            .updateTable('Wallet')
+            .set((eb) => ({
+              balanceInCents: eb('balanceInCents', '+', reversalDelta),
+            }))
+            .where('id', '=', transaction.walletId)
+            .execute();
+        }
 
         await tx
-          .updateTable('Wallet')
-          .set((eb) => ({
-            balanceInCents: eb('balanceInCents', '+', reversalDelta),
-          }))
-          .where('id', '=', transaction.walletId)
+          .deleteFrom('Transaction')
+          .where('transferGroupId', '=', transferGroupId)
           .execute();
-      }
-
-      await tx
-        .deleteFrom('Transaction')
-        .where('transferGroupId', '=', transferGroupId)
-        .execute();
-    });
+      });
   }
 }
