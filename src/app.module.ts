@@ -7,8 +7,6 @@ import { KyselyModule } from './modules/kysely/kysely.module';
 
 @Module({
   imports: [
-    PrismaModule,
-    KyselyModule,
     WalletModule,
     CategoryModule,
     TransactionModule,

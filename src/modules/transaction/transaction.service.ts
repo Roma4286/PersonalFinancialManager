@@ -100,21 +100,21 @@ export class TransactionService {
           );
         }
 
-        const balanceDelta =
+        const signedAmountInCents =
           category.type === TransactionType.EXPENSE
             ? -dto.amountInCents
             : dto.amountInCents;
 
         await tx.wallet.update({
           where: { id: dto.walletId },
-          data: { balanceInCents: { increment: balanceDelta } },
+          data: { balanceInCents: { increment: signedAmountInCents } },
         });
 
         const date = dto.date ? new Date(dto.date) : new Date();
 
         return await tx.transaction.create({
           data: {
-            amountInCents: dto.amountInCents,
+            amountInCents: signedAmountInCents,
             description: dto.description,
             date: date,
             walletId: dto.walletId,
@@ -130,10 +130,7 @@ export class TransactionService {
     return await this.prisma.$transaction(
       async (tx) => {
         const [oldTransaction, category] = await Promise.all([
-          tx.transaction.findUnique({
-            where: { id: transactionId },
-            include: { category: true },
-          }),
+          tx.transaction.findUnique({ where: { id: transactionId } }),
           tx.category.findUnique({ where: { id: dto.categoryId } }),
         ]);
 
@@ -149,17 +146,13 @@ export class TransactionService {
           );
         }
 
-        const oldEffect =
-          oldTransaction.category.type === TransactionType.EXPENSE
-            ? oldTransaction.amountInCents
-            : -oldTransaction.amountInCents;
-
-        const newEffect =
+        const newSignedAmountInCents =
           category.type === TransactionType.EXPENSE
             ? -dto.amountInCents
             : dto.amountInCents;
 
-        const balanceDelta = oldEffect + newEffect;
+        const balanceDelta =
+          newSignedAmountInCents - oldTransaction.amountInCents;
 
         await tx.wallet.update({
           where: { id: oldTransaction.walletId },
@@ -169,7 +162,7 @@ export class TransactionService {
         return await tx.transaction.update({
           where: { id: transactionId },
           data: {
-            amountInCents: dto.amountInCents,
+            amountInCents: newSignedAmountInCents,
             description: dto.description,
             date: dto.date ? new Date(dto.date) : undefined,
             categoryId: dto.categoryId,
@@ -187,7 +180,6 @@ export class TransactionService {
       async (tx) => {
         const transaction = await tx.transaction.findUnique({
           where: { id: transactionId },
-          include: { category: true },
         });
 
         if (!transaction) {
@@ -196,14 +188,11 @@ export class TransactionService {
           );
         }
 
-        const balanceDelta =
-          transaction.category.type === TransactionType.EXPENSE
-            ? transaction.amountInCents
-            : -transaction.amountInCents;
-
         await tx.wallet.update({
           where: { id: transaction.walletId },
-          data: { balanceInCents: { increment: balanceDelta } },
+          data: {
+            balanceInCents: { increment: -transaction.amountInCents },
+          },
         });
 
         return await tx.transaction.delete({
@@ -241,18 +230,13 @@ export class TransactionService {
         );
       }
 
-      const result = await tx
+      await tx
         .updateTable('Wallet')
         .set((eb) => ({
           balanceInCents: eb('balanceInCents', '-', dto.amountInCents),
         }))
         .where('id', '=', dto.oldWalletId)
-        .where('balanceInCents', '>=', dto.amountInCents)
-        .executeTakeFirst();
-
-      if (Number(result.numUpdatedRows) === 0) {
-        throw new BadRequestException('Insufficient funds');
-      }
+        .execute();
 
       const transferGroupId = createId();
 
@@ -272,7 +256,7 @@ export class TransactionService {
             categoryId: categoryExpenseTransfer.id,
             walletId: dto.oldWalletId,
             description: dto.description,
-            amountInCents: dto.amountInCents,
+            amountInCents: -dto.amountInCents,
             date: dto.date,
             transferGroupId: transferGroupId,
           })
@@ -338,50 +322,67 @@ export class TransactionService {
         throw new NotFoundException(`Transfer ${transferGroupId} not found`);
       }
 
-      if (
-        dto.amountInCents !== undefined &&
-        dto.amountInCents !== transactions[0].amountInCents
-      ) {
-        const delta = dto.amountInCents - transactions[0].amountInCents;
-        for (const transaction of transactions) {
-          if (transaction.type === TransactionType.EXPENSE) {
-            const result = await tx
-              .updateTable('Wallet')
-              .set((eb) => ({
-                balanceInCents: eb('balanceInCents', '-', delta),
-              }))
-              .where('id', '=', transaction.walletId)
-              .where('balanceInCents', '>=', delta > 0 ? delta : 0)
-              .executeTakeFirst();
-          } else {
-            const result = await tx
-              .updateTable('Wallet')
-              .set((eb) => ({
-                balanceInCents: eb('balanceInCents', '+', delta),
-              }))
-              .where('id', '=', transaction.walletId)
-              .where('balanceInCents', '>=', delta < 0 ? -delta : 0)
-              .executeTakeFirst();
-          }
-        }
+      const expenseLeg = transactions.find(
+        (transaction) => transaction.type === TransactionType.EXPENSE,
+      );
+      const incomeLeg = transactions.find(
+        (transaction) => transaction.type === TransactionType.INCOME,
+      );
+
+      if (!expenseLeg || !incomeLeg) {
+        throw new InternalServerErrorException(
+          `Transfer ${transferGroupId} is malformed`,
+        );
       }
 
-      const updateData = {
+      if (
+        dto.amountInCents !== undefined &&
+        dto.amountInCents !== incomeLeg.amountInCents
+      ) {
+        const delta = dto.amountInCents - incomeLeg.amountInCents;
+
+        await tx
+          .updateTable('Wallet')
+          .set((eb) => ({
+            balanceInCents: eb('balanceInCents', '-', delta),
+          }))
+          .where('id', '=', expenseLeg.walletId)
+          .execute();
+
+        await tx
+          .updateTable('Wallet')
+          .set((eb) => ({
+            balanceInCents: eb('balanceInCents', '+', delta),
+          }))
+          .where('id', '=', incomeLeg.walletId)
+          .execute();
+
+        await tx
+          .updateTable('Transaction')
+          .set({ amountInCents: -dto.amountInCents })
+          .where('id', '=', expenseLeg.id)
+          .execute();
+
+        await tx
+          .updateTable('Transaction')
+          .set({ amountInCents: dto.amountInCents })
+          .where('id', '=', incomeLeg.id)
+          .execute();
+      }
+
+      const commonUpdateData = {
         ...(dto.date !== undefined && {
           date: dto.date,
         }),
         ...(dto.description !== undefined && {
           description: dto.description,
         }),
-        ...(dto.amountInCents !== undefined && {
-          amountInCents: dto.amountInCents,
-        }),
       };
 
-      if (Object.keys(updateData).length > 0) {
+      if (Object.keys(commonUpdateData).length > 0) {
         await tx
           .updateTable('Transaction')
-          .set(updateData)
+          .set(commonUpdateData)
           .where('transferGroupId', '=', transferGroupId)
           .execute();
       }
@@ -392,13 +393,7 @@ export class TransactionService {
     return await this.kysely.transaction().execute(async (tx) => {
       const transactions = await tx
         .selectFrom('Transaction')
-        .innerJoin('Category', 'Category.id', 'Transaction.categoryId')
-        .select([
-          'Transaction.id',
-          'Transaction.walletId',
-          'Transaction.amountInCents',
-          'Category.type',
-        ])
+        .select(['id', 'walletId', 'amountInCents'])
         .where('transferGroupId', '=', transferGroupId)
         .execute();
 
@@ -407,32 +402,15 @@ export class TransactionService {
       }
 
       for (const transaction of transactions) {
-        if (transaction.type === TransactionType.EXPENSE) {
-          await tx
-            .updateTable('Wallet')
-            .set((eb) => ({
-              balanceInCents: eb(
-                'balanceInCents',
-                '+',
-                transaction.amountInCents,
-              ),
-            }))
-            .where('id', '=', transaction.walletId)
-            .executeTakeFirst();
-        } else {
-          const result = await tx
-            .updateTable('Wallet')
-            .set((eb) => ({
-              balanceInCents: eb(
-                'balanceInCents',
-                '-',
-                transaction.amountInCents,
-              ),
-            }))
-            .where('id', '=', transaction.walletId)
-            .where('balanceInCents', '>=', transaction.amountInCents)
-            .executeTakeFirst();
-        }
+        const reversalDelta = -transaction.amountInCents;
+
+        await tx
+          .updateTable('Wallet')
+          .set((eb) => ({
+            balanceInCents: eb('balanceInCents', '+', reversalDelta),
+          }))
+          .where('id', '=', transaction.walletId)
+          .execute();
       }
 
       await tx
