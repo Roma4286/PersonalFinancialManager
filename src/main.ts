@@ -25,6 +25,7 @@ async function main() {
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
 
   await app.listen(PORT, () => console.log(`Server started on port: ${PORT}`));
+  app.enableShutdownHooks();
 }
 
 main().catch((err) => console.error(err));

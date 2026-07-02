@@ -140,6 +140,12 @@ export class TransactionService {
           );
         }
 
+        if (oldTransaction.transferGroupId) {
+          throw new BadRequestException(
+            'Use the /transfer endpoints to modify transfer records',
+          );
+        }
+
         if (!category) {
           throw new NotFoundException(
             `The category with id ${dto.categoryId} not found`,
@@ -185,6 +191,12 @@ export class TransactionService {
         if (!transaction) {
           throw new NotFoundException(
             `The transaction with id ${transactionId} not found`,
+          );
+        }
+
+        if (transaction.transferGroupId) {
+          throw new BadRequestException(
+            'Use the /transfer endpoints to modify transfer records',
           );
         }
 
