@@ -24,6 +24,7 @@ import { TransactionFilterDto } from './dto/get-transactions.dto';
 import { CreateTransferDto } from './dto/create-transfer.dto';
 import { DeleteTransferDto } from './dto/delete-transfer.dto';
 import { UpdateTransferDto } from './dto/update-transfer.dto';
+import { TransferResponse } from './dto/response-transfer.dto';
 
 @Controller('/transactions')
 export class TransactionController {
@@ -118,15 +119,25 @@ export class TransactionController {
   @ApiResponse({
     status: 201,
     description: 'The record has been successfully created.',
+    type: TransferResponse,
   })
   @ApiResponse({ status: 400, description: 'Bad Request.' })
   @ApiResponse({ status: 404, description: 'Invalid wallet Id' })
   async createNewTransfer(@Body() transferDto: CreateTransferDto) {
-    return await this.transactionService.createNewTransfer(transferDto);
+    const transfer =
+      await this.transactionService.createNewTransfer(transferDto);
+    return plainToInstance(TransferResponse, transfer, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @Patch('transfer/:transferGroupId')
   @HttpCode(HttpStatus.OK)
+  @ApiResponse({
+    status: 200,
+    description: 'The record has been successfully updated.',
+    type: TransferResponse,
+  })
   @ApiResponse({ status: 400, description: 'Bad Request.' })
   @ApiResponse({
     status: 404,
@@ -136,7 +147,13 @@ export class TransactionController {
     @Param('transferGroupId') transferGroupId: string,
     @Body() dto: UpdateTransferDto,
   ) {
-    return await this.transactionService.updateTransfer(transferGroupId, dto);
+    const transfer = await this.transactionService.updateTransfer(
+      transferGroupId,
+      dto,
+    );
+    return plainToInstance(TransferResponse, transfer, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @Delete('transfer/:transferGroupId')

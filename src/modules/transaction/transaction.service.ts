@@ -215,7 +215,9 @@ export class TransactionService {
     );
   }
 
-  async createNewTransfer(dto: CreateTransferDto) {
+  async createNewTransfer(
+    dto: CreateTransferDto,
+  ): Promise<{ transferGroupId: string }> {
     if (dto.fromWalletId === dto.toWalletId ) {
       throw new BadRequestException(
         'The oldWalletId and newWalletId should not be the same',
@@ -233,7 +235,7 @@ export class TransactionService {
 
     const date = dto.date ? new Date(dto.date) : new Date();
 
-    return await this.kysely
+    const transferGroupId = await this.kysely
       .transaction()
       .setIsolationLevel('serializable')
       .execute(async (tx) => {
@@ -304,11 +306,18 @@ export class TransactionService {
             transferGroupId: transferGroupId,
           })
           .execute();
+
+        return transferGroupId;
       });
+
+    return { transferGroupId };
   }
 
-  async updateTransfer(transferGroupId: string, dto: UpdateTransferDto) {
-    return await this.kysely
+  async updateTransfer(
+    transferGroupId: string,
+    dto: UpdateTransferDto,
+  ): Promise<{ transferGroupId: string }> {
+    await this.kysely
       .transaction()
       .setIsolationLevel('serializable')
       .execute(async (tx) => {
@@ -395,6 +404,8 @@ export class TransactionService {
             .execute();
         }
       });
+
+    return { transferGroupId };
   }
 
   async deleteTransfer(transferGroupId: string) {
