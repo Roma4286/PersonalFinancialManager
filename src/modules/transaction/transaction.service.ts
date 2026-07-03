@@ -249,6 +249,7 @@ export class TransactionService {
           .updateTable('Wallet')
           .set((eb) => ({
             balanceInCents: eb('balanceInCents', '-', dto.amountInCents),
+            updatedAt: new Date(),
           }))
           .where('id', '=', dto.oldWalletId)
           .execute();
@@ -286,6 +287,7 @@ export class TransactionService {
           .updateTable('Wallet')
           .set((eb) => ({
             balanceInCents: eb('balanceInCents', '+', dto.amountInCents),
+            updatedAt: new Date(),
           }))
           .where('id', '=', dto.newWalletId)
           .execute();
@@ -363,6 +365,7 @@ export class TransactionService {
             .updateTable('Wallet')
             .set((eb) => ({
               balanceInCents: eb('balanceInCents', '-', delta),
+              updatedAt: new Date(),
             }))
             .where('id', '=', expenseLeg.walletId)
             .execute();
@@ -371,19 +374,20 @@ export class TransactionService {
             .updateTable('Wallet')
             .set((eb) => ({
               balanceInCents: eb('balanceInCents', '+', delta),
+              updatedAt: new Date(),
             }))
             .where('id', '=', incomeLeg.walletId)
             .execute();
 
           await tx
             .updateTable('Transaction')
-            .set({ amountInCents: -dto.amountInCents })
+            .set({ amountInCents: -dto.amountInCents, updatedAt: new Date() })
             .where('id', '=', expenseLeg.id)
             .execute();
 
           await tx
             .updateTable('Transaction')
-            .set({ amountInCents: dto.amountInCents })
+            .set({ amountInCents: dto.amountInCents, updatedAt: new Date() })
             .where('id', '=', incomeLeg.id)
             .execute();
         }
@@ -400,7 +404,7 @@ export class TransactionService {
         if (Object.keys(commonUpdateData).length > 0) {
           await tx
             .updateTable('Transaction')
-            .set(commonUpdateData)
+            .set({ ...commonUpdateData, updatedAt: new Date() })
             .where('transferGroupId', '=', transferGroupId)
             .execute();
         }
@@ -429,6 +433,7 @@ export class TransactionService {
             .updateTable('Wallet')
             .set((eb) => ({
               balanceInCents: eb('balanceInCents', '+', reversalDelta),
+              updatedAt: new Date(),
             }))
             .where('id', '=', transaction.walletId)
             .execute();
