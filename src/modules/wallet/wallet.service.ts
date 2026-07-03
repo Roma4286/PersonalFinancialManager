@@ -15,7 +15,7 @@ export class WalletService {
     return await this.prisma.wallet.findMany();
   }
 
-  async getBalance(walletId: string): Promise<string> {
+  async getBalance(walletId: string): Promise<number> {
     const wallet = await this.prisma.wallet.findUnique({
       where: { id: walletId },
       select: {
@@ -27,7 +27,7 @@ export class WalletService {
       throw new NotFoundException(`The wallet with id ${walletId} not found`);
     }
 
-    return String(wallet.balanceInCents);
+    return wallet.balanceInCents;
   }
 
   async getStats(query: StatsFiltersDto) {

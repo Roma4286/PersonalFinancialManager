@@ -11,7 +11,7 @@ export class Wallet {
 }
 
 export class BalanceResponse {
-  @Expose() readonly totalBalance!: string;
+  @Expose() readonly totalBalance!: number;
 }
 
 export class StatsResponse {
