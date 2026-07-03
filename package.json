@@ -2,7 +2,6 @@
   "name": "personalfinancialmanager",
   "version": "1.0.0",
   "scripts": {
-    "build": "nest build",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "format": "npx prettier --write src/**",
@@ -13,7 +12,9 @@
     "db:migrate": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:generate": "prisma generate && npx prettier --write src/db/types.ts",
-    "setup": "npm run docker:start && npm run db:migrate && npm run db:seed && npm run db:generate"
+    "setup": "npm run docker:start && npm run db:migrate && npm run db:seed && npm run db:generate",
+    "build": "npm run db:generate && nest build"
+
   },
   "keywords": [],
   "author": "",
