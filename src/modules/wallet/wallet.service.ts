@@ -36,10 +36,12 @@ export class WalletService {
       .innerJoin('Category', 'Category.id', 'Transaction.categoryId')
       .select([
         'Category.name',
-        (eb) => eb.fn.sum('amountInCents').as('totalAmount'),
+        (eb) =>
+          eb.fn<number>('abs', [eb.fn.sum('amountInCents')]).as('totalAmount'),
         'Category.type',
       ])
       .where('Transaction.walletId', '=', query.walletId)
+      .where('Transaction.transferGroupId', 'is', null)
       .groupBy(['Transaction.categoryId', 'Category.name', 'Category.type']);
 
     if (query.from) {
