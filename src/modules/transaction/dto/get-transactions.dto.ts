@@ -5,20 +5,20 @@ import { Type } from 'class-transformer';
 import {
   IsDateString,
   IsEnum,
-  IsNumber,
+  IsInt,
   IsOptional,
   Min,
 } from 'class-validator';
 
 export class TransactionFilterDto {
   @Type(() => Number)
-  @IsNumber()
+  @IsInt()
   @Min(1)
   @IsOptional()
   readonly page?: number;
 
   @Type(() => Number)
-  @IsNumber()
+  @IsInt()
   @Min(1)
   @IsOptional()
   readonly length?: number;

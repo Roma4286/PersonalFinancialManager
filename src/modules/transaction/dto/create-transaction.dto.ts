@@ -1,7 +1,7 @@
 import { IsCuid } from '@/common/decorators/is-cuid.decorator';
 import {
   IsDateString,
-  IsNumber,
+  IsInt,
   IsOptional,
   IsPositive,
   IsString,
@@ -9,7 +9,7 @@ import {
 } from 'class-validator';
 
 export class CreateTransactionDto {
-  @IsNumber()
+  @IsInt()
   @IsPositive({ message: 'Amount must be > 0' })
   readonly amountInCents!: number;
 

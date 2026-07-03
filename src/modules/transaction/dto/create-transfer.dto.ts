@@ -1,7 +1,7 @@
 import { IsCuid } from '@/common/decorators/is-cuid.decorator';
 import {
   IsDateString,
-  IsNumber,
+  IsInt,
   IsOptional,
   IsPositive,
   IsString,
@@ -15,7 +15,7 @@ export class CreateTransferDto {
   @IsCuid()
   readonly newWalletId!: string;
 
-  @IsNumber()
+  @IsInt()
   @IsPositive({ message: 'Amount must be > 0' })
   readonly amountInCents!: number;
 

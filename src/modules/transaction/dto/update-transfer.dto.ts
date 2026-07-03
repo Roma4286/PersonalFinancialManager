@@ -1,6 +1,6 @@
 import {
   IsDateString,
-  IsNumber,
+  IsInt,
   IsOptional,
   IsPositive,
   IsString,
@@ -8,7 +8,7 @@ import {
 } from 'class-validator';
 
 export class UpdateTransferDto {
-  @IsNumber()
+  @IsInt()
   @IsOptional()
   @IsPositive({ message: 'Amount must be > 0' })
   readonly amountInCents?: number;
