@@ -216,7 +216,7 @@ export class TransactionService {
   }
 
   async createNewTransfer(dto: CreateTransferDto) {
-    if (dto.oldWalletId === dto.newWalletId) {
+    if (dto.fromWalletId === dto.toWalletId ) {
       throw new BadRequestException(
         'The oldWalletId and newWalletId should not be the same',
       );
@@ -238,20 +238,20 @@ export class TransactionService {
         const wallets = await tx
           .selectFrom('Wallet')
           .select(['id'])
-          .where('id', 'in', [dto.oldWalletId, dto.newWalletId])
+          .where('id', 'in', [dto.fromWalletId, dto.toWalletId ])
           .execute();
 
         const walletIds = new Set(wallets.map((w) => w.id));
 
-        if (!walletIds.has(dto.oldWalletId)) {
+        if (!walletIds.has(dto.fromWalletId)) {
           throw new NotFoundException(
-            `The wallet with id ${dto.oldWalletId} not found`,
+            `The wallet with id ${dto.fromWalletId} not found`,
           );
         }
 
-        if (!walletIds.has(dto.newWalletId)) {
+        if (!walletIds.has(dto.toWalletId )) {
           throw new NotFoundException(
-            `The wallet with id ${dto.newWalletId} not found`,
+            `The wallet with id ${dto.toWalletId } not found`,
           );
         }
 
@@ -261,7 +261,7 @@ export class TransactionService {
             balanceInCents: eb('balanceInCents', '-', dto.amountInCents),
             updatedAt: new Date(),
           }))
-          .where('id', '=', dto.oldWalletId)
+          .where('id', '=', dto.fromWalletId)
           .execute();
 
         const transferGroupId = createId();
@@ -272,7 +272,7 @@ export class TransactionService {
             id: createId(),
             updatedAt: new Date(),
             categoryId: transferExpenseCategoryId,
-            walletId: dto.oldWalletId,
+            walletId: dto.fromWalletId,
             description: dto.description,
             amountInCents: -dto.amountInCents,
             date: dto.date,
@@ -286,7 +286,7 @@ export class TransactionService {
             balanceInCents: eb('balanceInCents', '+', dto.amountInCents),
             updatedAt: new Date(),
           }))
-          .where('id', '=', dto.newWalletId)
+          .where('id', '=', dto.toWalletId )
           .execute();
 
         await tx
@@ -295,7 +295,7 @@ export class TransactionService {
             id: createId(),
             updatedAt: new Date(),
             categoryId: transferIncomeCategoryId,
-            walletId: dto.newWalletId,
+            walletId: dto.toWalletId ,
             description: dto.description,
             amountInCents: dto.amountInCents,
             date: dto.date,

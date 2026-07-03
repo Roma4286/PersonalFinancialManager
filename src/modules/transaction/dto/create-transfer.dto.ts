@@ -10,10 +10,10 @@ import {
 
 export class CreateTransferDto {
   @IsCuid()
-  readonly oldWalletId!: string;
+  readonly fromWalletId!: string;
 
   @IsCuid()
-  readonly newWalletId!: string;
+  readonly toWalletId !: string;
 
   @IsInt()
   @IsPositive({ message: 'Amount must be > 0' })
