@@ -46,11 +46,17 @@ async function main() {
       create: category,
     });
 
-    if (category.name === 'Transfer' && category.type === TransactionType.EXPENSE) {
+    if (
+      category.name === 'Transfer' &&
+      category.type === TransactionType.EXPENSE
+    ) {
       setEnvVar('TRANSFER_EXPENSE_CATEGORY_ID', created.id);
     }
 
-    if (category.name === 'Transfer' && category.type === TransactionType.INCOME) {
+    if (
+      category.name === 'Transfer' &&
+      category.type === TransactionType.INCOME
+    ) {
       setEnvVar('TRANSFER_INCOME_CATEGORY_ID', created.id);
     }
   }

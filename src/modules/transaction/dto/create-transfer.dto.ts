@@ -13,7 +13,7 @@ export class CreateTransferDto {
   readonly fromWalletId!: string;
 
   @IsCuid()
-  readonly toWalletId !: string;
+  readonly toWalletId!: string;
 
   @IsInt()
   @IsPositive({ message: 'Amount must be > 0' })
