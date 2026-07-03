@@ -1,7 +1,28 @@
 import { PrismaClient, TransactionType } from '@prisma/client';
 import 'dotenv/config';
+import fs from 'fs';
+import path from 'path';
 
 const prisma = new PrismaClient();
+
+function setEnvVar(key: string, value: string) {
+  const envPath = path.join(__dirname, '..', '.env');
+  const content = fs.existsSync(envPath)
+    ? fs.readFileSync(envPath, 'utf-8')
+    : '';
+  const lines = content.split('\n').filter((line) => line.length > 0);
+  const idx = lines.findIndex((line) => line.startsWith(`${key}=`));
+  const newLine = `${key}=${value}`;
+
+  if (idx >= 0) {
+    lines[idx] = newLine;
+  } else {
+    lines.push(newLine);
+  }
+
+  fs.writeFileSync(envPath, lines.join('\n') + '\n');
+  process.env[key] = value;
+}
 
 async function main() {
   const categories = [
@@ -14,7 +35,7 @@ async function main() {
   ];
 
   for (const category of categories) {
-    await prisma.category.upsert({
+    const created = await prisma.category.upsert({
       where: {
         name_type: {
           name: category.name,
@@ -24,6 +45,14 @@ async function main() {
       update: {},
       create: category,
     });
+
+    if (category.name === 'Transfer' && category.type === TransactionType.EXPENSE) {
+      setEnvVar('TRANSFER_EXPENSE_CATEGORY_ID', created.id);
+    }
+
+    if (category.name === 'Transfer' && category.type === TransactionType.INCOME) {
+      setEnvVar('TRANSFER_INCOME_CATEGORY_ID', created.id);
+    }
   }
 
   const wallets = [{ name: 'Wallet' }, { name: 'Card' }];

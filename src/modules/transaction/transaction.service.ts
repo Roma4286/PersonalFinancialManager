@@ -221,6 +221,16 @@ export class TransactionService {
         'The oldWalletId and newWalletId should not be the same',
       );
     }
+
+    const transferExpenseCategoryId = process.env.TRANSFER_EXPENSE_CATEGORY_ID;
+    const transferIncomeCategoryId = process.env.TRANSFER_INCOME_CATEGORY_ID;
+
+    if (!transferExpenseCategoryId || !transferIncomeCategoryId) {
+      throw new InternalServerErrorException(
+        'Transfer category ids are not configured',
+      );
+    }
+
     return await this.kysely
       .transaction()
       .setIsolationLevel('serializable')
@@ -256,32 +266,19 @@ export class TransactionService {
 
         const transferGroupId = createId();
 
-        const categoryExpenseTransfer = await tx
-          .selectFrom('Category')
-          .select('id')
-          .where('type', '=', 'EXPENSE')
-          .where('name', '=', 'Transfer')
-          .executeTakeFirst();
-
-        if (categoryExpenseTransfer) {
-          await tx
-            .insertInto('Transaction')
-            .values({
-              id: createId(),
-              updatedAt: new Date(),
-              categoryId: categoryExpenseTransfer.id,
-              walletId: dto.oldWalletId,
-              description: dto.description,
-              amountInCents: -dto.amountInCents,
-              date: dto.date,
-              transferGroupId: transferGroupId,
-            })
-            .execute();
-        } else {
-          throw new InternalServerErrorException(
-            'No exception category for transfer',
-          );
-        }
+        await tx
+          .insertInto('Transaction')
+          .values({
+            id: createId(),
+            updatedAt: new Date(),
+            categoryId: transferExpenseCategoryId,
+            walletId: dto.oldWalletId,
+            description: dto.description,
+            amountInCents: -dto.amountInCents,
+            date: dto.date,
+            transferGroupId: transferGroupId,
+          })
+          .execute();
 
         await tx
           .updateTable('Wallet')
@@ -292,32 +289,19 @@ export class TransactionService {
           .where('id', '=', dto.newWalletId)
           .execute();
 
-        const categoryIncomeTransfer = await tx
-          .selectFrom('Category')
-          .select('id')
-          .where('type', '=', TransactionType.INCOME)
-          .where('name', '=', 'Transfer')
-          .executeTakeFirst();
-
-        if (categoryIncomeTransfer) {
-          await tx
-            .insertInto('Transaction')
-            .values({
-              id: createId(),
-              updatedAt: new Date(),
-              categoryId: categoryIncomeTransfer.id,
-              walletId: dto.newWalletId,
-              description: dto.description,
-              amountInCents: dto.amountInCents,
-              date: dto.date,
-              transferGroupId: transferGroupId,
-            })
-            .execute();
-        } else {
-          throw new InternalServerErrorException(
-            'No income category for transfer',
-          );
-        }
+        await tx
+          .insertInto('Transaction')
+          .values({
+            id: createId(),
+            updatedAt: new Date(),
+            categoryId: transferIncomeCategoryId,
+            walletId: dto.newWalletId,
+            description: dto.description,
+            amountInCents: dto.amountInCents,
+            date: dto.date,
+            transferGroupId: transferGroupId,
+          })
+          .execute();
       });
   }
 
