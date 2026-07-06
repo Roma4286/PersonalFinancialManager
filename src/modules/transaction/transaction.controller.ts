@@ -22,7 +22,7 @@ import { IdParamDto } from './dto/get-id.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { TransactionFilterDto } from './dto/get-transactions.dto';
 import { CreateTransferDto } from './dto/create-transfer.dto';
-import { DeleteTransferDto } from './dto/delete-transfer.dto';
+import { TransferGroupIdParamDto } from './dto/transfer-group-id-param.dto';
 import { UpdateTransferDto } from './dto/update-transfer.dto';
 import { TransferResponse } from './dto/response-transfer.dto';
 
@@ -90,11 +90,11 @@ export class TransactionController {
     description: 'Transaction or category not found',
   })
   async updateTransaction(
-    @Param('id') transactionId: string,
+    @Param() params: IdParamDto,
     @Body() dto: UpdateTransactionDto,
   ) {
     const transaction = await this.transactionService.updateTransaction(
-      transactionId,
+      params.id,
       dto,
     );
     return plainToInstance(Transaction, transaction, {
@@ -113,7 +113,7 @@ export class TransactionController {
     await this.transactionService.deleteTransaction(params.id);
   }
 
-  @Post('/transfer')
+  @Post('/transfers')
   @HttpCode(HttpStatus.CREATED)
   @ApiResponse({
     status: 201,
@@ -130,7 +130,7 @@ export class TransactionController {
     });
   }
 
-  @Patch('transfer/:transferGroupId')
+  @Patch('transfers/:transferGroupId')
   @HttpCode(HttpStatus.OK)
   @ApiResponse({
     status: 200,
@@ -143,11 +143,11 @@ export class TransactionController {
     description: 'Transfer not found',
   })
   async updateTransfer(
-    @Param('transferGroupId') transferGroupId: string,
+    @Param() params: TransferGroupIdParamDto,
     @Body() dto: UpdateTransferDto,
   ) {
     const transfer = await this.transactionService.updateNewTransfer(
-      transferGroupId,
+      params.transferGroupId,
       dto,
     );
     return plainToInstance(TransferResponse, transfer, {
@@ -155,14 +155,14 @@ export class TransactionController {
     });
   }
 
-  @Delete('transfer/:transferGroupId')
+  @Delete('transfers/:transferGroupId')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiResponse({
     status: 204,
     description: 'Remove transaction.',
   })
   @ApiResponse({ status: 404, description: 'Id not found.' })
-  async deleteTransfer(@Param() params: DeleteTransferDto) {
+  async deleteTransfer(@Param() params: TransferGroupIdParamDto) {
     await this.transactionService.deleteTransfer(params.transferGroupId);
   }
 }
