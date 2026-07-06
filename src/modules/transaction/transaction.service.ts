@@ -114,13 +114,11 @@ export class TransactionService {
           data: { balanceInCents: { increment: signedAmountInCents } },
         });
 
-        const date = dto.date ? new Date(dto.date) : new Date();
-
         return await tx.transaction.create({
           data: {
             amountInCents: signedAmountInCents,
             description: dto.description,
-            date: date,
+            ...(dto.date && { date: new Date(dto.date) }),
             walletId: dto.walletId,
             categoryId: dto.categoryId,
           },
@@ -237,7 +235,7 @@ export class TransactionService {
       );
     }
 
-    const date = dto.date ? new Date(dto.date) : new Date();
+    const date = dto.date ? new Date(dto.date) : undefined;
 
     const transferGroupId = await this.kysely
       .transaction()
@@ -283,7 +281,7 @@ export class TransactionService {
             walletId: dto.fromWalletId,
             description: dto.description,
             amountInCents: -dto.amountInCents,
-            date: date,
+            ...(date && { date }),
             transferGroupId: transferGroupId,
           })
           .execute();
@@ -306,7 +304,7 @@ export class TransactionService {
             walletId: dto.toWalletId ,
             description: dto.description,
             amountInCents: dto.amountInCents,
-            date: date,
+            ...(date && { date }),
             transferGroupId: transferGroupId,
           })
           .execute();
