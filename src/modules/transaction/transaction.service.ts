@@ -222,7 +222,7 @@ export class TransactionService {
   ): Promise<{ transferGroupId: string }> {
     if (dto.fromWalletId === dto.toWalletId ) {
       throw new BadRequestException(
-        'The oldWalletId and newWalletId should not be the same',
+        'The fromWalletId and toWalletId must not be the same',
       );
     }
 
