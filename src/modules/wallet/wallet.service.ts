@@ -31,7 +31,7 @@ export class WalletService {
   }
 
   async getStats(query: StatsFiltersDto) {
-    let qb = this.kysely
+    let queryBuilder = this.kysely
       .selectFrom('Transaction')
       .innerJoin('Category', 'Category.id', 'Transaction.categoryId')
       .select([
@@ -45,22 +45,22 @@ export class WalletService {
       .groupBy(['Transaction.categoryId', 'Category.name', 'Category.type']);
 
     if (query.from) {
-      qb = qb.where('date', '>=', new Date(query.from));
+      queryBuilder = queryBuilder.where('date', '>=', new Date(query.from));
     }
 
     if (query.to) {
-      qb = qb.where(
+      queryBuilder = queryBuilder.where(
         'date',
         '<=',
         new Date(new Date(query.to).getTime() + 24 * 60 * 60 * 1000),
       );
     }
 
-    const result = await qb.execute();
+    const result = await queryBuilder.execute();
 
-    return result.map((item) => ({
-      ...item,
-      totalAmount: String(item.totalAmount),
+    return result.map((categoryTotal) => ({
+      ...categoryTotal,
+      totalAmount: String(categoryTotal.totalAmount),
     }));
   }
 }

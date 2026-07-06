@@ -247,7 +247,7 @@ export class TransactionService {
           .where('id', 'in', [dto.fromWalletId, dto.toWalletId ])
           .execute();
 
-        const walletIds = new Set(wallets.map((w) => w.id));
+        const walletIds = new Set(wallets.map((wallet) => wallet.id));
 
         if (!walletIds.has(dto.fromWalletId)) {
           throw new NotFoundException(
