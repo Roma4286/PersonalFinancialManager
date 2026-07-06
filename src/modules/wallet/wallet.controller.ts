@@ -32,7 +32,7 @@ export class WalletController {
     description: 'Financial Summary.',
     type: BalanceResponse,
   })
-  @ApiResponse({ status: 404, description: 'Invalid wallet Id.' })
+  @ApiResponse({ status: 404, description: 'Id not found.' })
   async getBalance(@Param() params: GetBalanceDto) {
     const totalBalance = await this.walletService.getBalance(params.id);
     return plainToInstance(

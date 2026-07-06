@@ -51,7 +51,7 @@ export class TransactionController {
     description: 'Retrieve one item.',
     type: TransactionWithCategory,
   })
-  @ApiResponse({ status: 404, description: 'Invalid Id.' })
+  @ApiResponse({ status: 404, description: 'Id not found.' })
   async getOneTransaction(@Param() params: IdParamDto) {
     const transaction = await this.transactionService.getTransactionById(
       params.id,
@@ -109,7 +109,7 @@ export class TransactionController {
     status: 204,
     description: 'Remove transaction.',
   })
-  @ApiResponse({ status: 404, description: 'Invalid Id.' })
+  @ApiResponse({ status: 404, description: 'Id not found.' })
   async deleteTransaction(@Param() params: IdParamDto) {
     await this.transactionService.deleteTransaction(params.id);
   }
@@ -162,7 +162,7 @@ export class TransactionController {
     status: 204,
     description: 'Remove transaction.',
   })
-  @ApiResponse({ status: 404, description: 'Invalid Id.' })
+  @ApiResponse({ status: 404, description: 'Id not found.' })
   async deleteTransfer(@Param() params: DeleteTransferDto) {
     await this.transactionService.deleteTransfer(params.transferGroupId);
   }
