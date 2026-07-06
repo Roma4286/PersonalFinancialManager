@@ -49,7 +49,11 @@ export class WalletService {
     }
 
     if (query.to) {
-      qb = qb.where('date', '<=', new Date(query.to));
+      qb = qb.where(
+        'date',
+        '<=',
+        new Date(new Date(query.to).getTime() + 24 * 60 * 60 * 1000),
+      );
     }
 
     const result = await qb.execute();

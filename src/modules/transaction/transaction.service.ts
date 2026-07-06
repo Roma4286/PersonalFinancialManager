@@ -53,7 +53,11 @@ export class TransactionService {
         ...((filters.from || filters.to) && {
           date: {
             ...(filters.from && { gte: new Date(filters.from) }),
-            ...(filters.to && { lte: new Date(filters.to) }),
+            ...(filters.to && {
+              lte: new Date(
+                new Date(filters.to).getTime() + 24 * 60 * 60 * 1000,
+              ),
+            }),
           },
         }),
       },
