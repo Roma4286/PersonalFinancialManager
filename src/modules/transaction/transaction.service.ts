@@ -4,7 +4,6 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { Transaction, TransactionType } from '@prisma/client';
@@ -22,7 +21,6 @@ export class TransactionService {
   constructor(
     private prisma: PrismaService,
     private kysely: KyselyService,
-    private configService: ConfigService,
   ) {}
 
   async getAllTransactions(filters: TransactionFilterDto) {
@@ -220,18 +218,14 @@ export class TransactionService {
   async createNewTransfer(
     dto: CreateTransferDto,
   ): Promise<{ transferGroupId: string }> {
-    if (dto.fromWalletId === dto.toWalletId) {
+    if (dto.fromWalletId === dto.toWalletId ) {
       throw new BadRequestException(
         'The oldWalletId and newWalletId should not be the same',
       );
     }
 
-    const transferExpenseCategoryId = this.configService.get<string>(
-      'TRANSFER_EXPENSE_CATEGORY_ID',
-    );
-    const transferIncomeCategoryId = this.configService.get<string>(
-      'TRANSFER_INCOME_CATEGORY_ID',
-    );
+    const transferExpenseCategoryId = process.env.TRANSFER_EXPENSE_CATEGORY_ID;
+    const transferIncomeCategoryId = process.env.TRANSFER_INCOME_CATEGORY_ID;
 
     if (!transferExpenseCategoryId || !transferIncomeCategoryId) {
       throw new InternalServerErrorException(
@@ -248,7 +242,7 @@ export class TransactionService {
         const wallets = await tx
           .selectFrom('Wallet')
           .select(['id'])
-          .where('id', 'in', [dto.fromWalletId, dto.toWalletId])
+          .where('id', 'in', [dto.fromWalletId, dto.toWalletId ])
           .execute();
 
         const walletIds = new Set(wallets.map((w) => w.id));
@@ -259,9 +253,9 @@ export class TransactionService {
           );
         }
 
-        if (!walletIds.has(dto.toWalletId)) {
+        if (!walletIds.has(dto.toWalletId )) {
           throw new NotFoundException(
-            `The wallet with id ${dto.toWalletId} not found`,
+            `The wallet with id ${dto.toWalletId } not found`,
           );
         }
 
@@ -296,7 +290,7 @@ export class TransactionService {
             balanceInCents: eb('balanceInCents', '+', dto.amountInCents),
             updatedAt: new Date(),
           }))
-          .where('id', '=', dto.toWalletId)
+          .where('id', '=', dto.toWalletId )
           .execute();
 
         await tx
@@ -305,7 +299,7 @@ export class TransactionService {
             id: createId(),
             updatedAt: new Date(),
             categoryId: transferIncomeCategoryId,
-            walletId: dto.toWalletId,
+            walletId: dto.toWalletId ,
             description: dto.description,
             amountInCents: dto.amountInCents,
             date: date,
