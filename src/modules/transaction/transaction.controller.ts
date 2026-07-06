@@ -37,9 +37,8 @@ export class TransactionController {
     type: Transaction,
     isArray: true,
   })
-  async getAllTransactions(@Query() query: TransactionFilterDto) {
-    const transactions =
-      await this.transactionService.getAllTransactions(query);
+  async getTransactions(@Query() query: TransactionFilterDto) {
+    const transactions = await this.transactionService.getTransactions(query);
     return plainToInstance(Transaction, transactions, {
       excludeExtraneousValues: true,
     });
@@ -147,7 +146,7 @@ export class TransactionController {
     @Param('transferGroupId') transferGroupId: string,
     @Body() dto: UpdateTransferDto,
   ) {
-    const transfer = await this.transactionService.updateTransfer(
+    const transfer = await this.transactionService.updateNewTransfer(
       transferGroupId,
       dto,
     );

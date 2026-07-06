@@ -23,16 +23,16 @@ export class TransactionService {
     private kysely: KyselyService,
   ) {}
 
-  async getAllTransactions(filters: TransactionFilterDto) {
-    if (filters.from && filters.to) {
-      if (new Date(filters.from) > new Date(filters.to)) {
+  async getTransactions(query: TransactionFilterDto) {
+    if (query.from && query.to) {
+      if (new Date(query.from) > new Date(query.to)) {
         throw new BadRequestException('from must be <= to');
       }
     }
 
-    const page = filters.page ?? 1;
+    const page = query.page ?? 1;
     const length = Math.min(
-      filters.length ?? this.DEFAULT_PAGE_SIZE,
+      query.length ?? this.DEFAULT_PAGE_SIZE,
       this.MAX_PAGE_SIZE,
     );
 
@@ -41,21 +41,21 @@ export class TransactionService {
         date: 'desc',
       },
       where: {
-        ...(filters.categoryId && { categoryId: filters.categoryId }),
-        ...(filters.walletId && { walletId: filters.walletId }),
-        ...(filters.transactionType && {
+        ...(query.categoryId && { categoryId: query.categoryId }),
+        ...(query.walletId && { walletId: query.walletId }),
+        ...(query.transactionType && {
           category: {
             is: {
-              type: filters.transactionType,
+              type: query.transactionType,
             },
           },
         }),
-        ...((filters.from || filters.to) && {
+        ...((query.from || query.to) && {
           date: {
-            ...(filters.from && { gte: new Date(filters.from) }),
-            ...(filters.to && {
+            ...(query.from && { gte: new Date(query.from) }),
+            ...(query.to && {
               lte: new Date(
-                new Date(filters.to).getTime() + 24 * 60 * 60 * 1000,
+                new Date(query.to).getTime() + 24 * 60 * 60 * 1000,
               ),
             }),
           },
@@ -315,7 +315,7 @@ export class TransactionService {
     return { transferGroupId };
   }
 
-  async updateTransfer(
+  async updateNewTransfer(
     transferGroupId: string,
     dto: UpdateTransferDto,
   ): Promise<{ transferGroupId: string }> {
