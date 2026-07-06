@@ -69,7 +69,7 @@ export class TransactionController {
     type: Transaction,
   })
   @ApiResponse({ status: 400, description: 'Bad Request.' })
-  @ApiResponse({ status: 404, description: 'Invalid category or wallet Id' })
+  @ApiResponse({ status: 404, description: 'Category or wallet not found' })
   async createNewTransaction(@Body() transactionDto: CreateTransactionDto) {
     const transaction =
       await this.transactionService.createNewTransaction(transactionDto);
@@ -88,7 +88,7 @@ export class TransactionController {
   @ApiResponse({ status: 400, description: 'Bad Request.' })
   @ApiResponse({
     status: 404,
-    description: 'Invalid transaction or category Id',
+    description: 'Transaction or category not found',
   })
   async updateTransaction(
     @Param('id') transactionId: string,
@@ -122,7 +122,7 @@ export class TransactionController {
     type: TransferResponse,
   })
   @ApiResponse({ status: 400, description: 'Bad Request.' })
-  @ApiResponse({ status: 404, description: 'Invalid wallet Id' })
+  @ApiResponse({ status: 404, description: 'Wallet not found' })
   async createNewTransfer(@Body() transferDto: CreateTransferDto) {
     const transfer =
       await this.transactionService.createNewTransfer(transferDto);
@@ -141,7 +141,7 @@ export class TransactionController {
   @ApiResponse({ status: 400, description: 'Bad Request.' })
   @ApiResponse({
     status: 404,
-    description: 'Invalid transferGroupId Id',
+    description: 'Transfer not found',
   })
   async updateTransfer(
     @Param('transferGroupId') transferGroupId: string,
