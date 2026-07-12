@@ -14,7 +14,7 @@ import { plainToInstance } from 'class-transformer';
 import { CreateTransferDto } from './dto/create-transfer.dto';
 import { TransferGroupIdParamDto } from './dto/transfer-group-id-param.dto';
 import { UpdateTransferDto } from './dto/update-transfer.dto';
-import { TransferResponse } from './dto/response-transfer.dto';
+import { TransferResponse } from './dto/transfer-response.dto';
 
 @Controller('/transactions/transfers')
 export class TransferController {
@@ -30,9 +30,7 @@ export class TransferController {
   @ApiResponse({ status: 400, description: 'Bad Request.' })
   @ApiResponse({ status: 404, description: 'Wallet not found' })
   async createNewTransfer(@Body() transferDto: CreateTransferDto) {
-    const transfer = await this.transferService.createNewTransfer(
-      transferDto,
-    );
+    const transfer = await this.transferService.createNewTransfer(transferDto);
     return plainToInstance(TransferResponse, transfer, {
       excludeExtraneousValues: true,
     });

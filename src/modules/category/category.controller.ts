@@ -2,7 +2,7 @@ import { Controller, Get } from '@nestjs/common';
 import { CategoryService } from './category.service';
 import { ApiResponse } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
-import { Category } from './dto/response-category.dto';
+import { CategoryResponse } from './dto/category-response.dto';
 
 @Controller('/categories')
 export class CategoryController {
@@ -12,12 +12,12 @@ export class CategoryController {
   @ApiResponse({
     status: 200,
     description: 'Retrieve all items.',
-    type: Category,
+    type: CategoryResponse,
     isArray: true,
   })
   async getAllCategories() {
     const categories = await this.categoryService.getAllCategories();
-    return plainToInstance(Category, categories, {
+    return plainToInstance(CategoryResponse, categories, {
       excludeExtraneousValues: true,
     });
   }

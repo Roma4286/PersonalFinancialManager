@@ -14,13 +14,13 @@ import { TransactionService } from './transaction.service';
 import { ApiResponse } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import {
-  Transaction,
-  TransactionWithCategory,
-} from './dto/response-transaction.dto';
+  TransactionResponse,
+  TransactionWithCategoryResponse,
+} from './dto/transaction-response.dto';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
-import { IdParamDto } from './dto/get-id.dto';
+import { IdParamDto } from '@/common/dto/id-param.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
-import { TransactionFilterDto } from './dto/get-transactions.dto';
+import { TransactionFilterDto } from './dto/transaction-filter.dto';
 
 @Controller('/transactions')
 export class TransactionController {
@@ -30,12 +30,12 @@ export class TransactionController {
   @ApiResponse({
     status: 200,
     description: 'Retrieve all items.',
-    type: Transaction,
+    type: TransactionResponse,
     isArray: true,
   })
   async getTransactions(@Query() query: TransactionFilterDto) {
     const transactions = await this.transactionService.getTransactions(query);
-    return plainToInstance(Transaction, transactions, {
+    return plainToInstance(TransactionResponse, transactions, {
       excludeExtraneousValues: true,
     });
   }
@@ -44,14 +44,14 @@ export class TransactionController {
   @ApiResponse({
     status: 200,
     description: 'Retrieve one item.',
-    type: TransactionWithCategory,
+    type: TransactionWithCategoryResponse,
   })
   @ApiResponse({ status: 404, description: 'Id not found.' })
   async getOneTransaction(@Param() params: IdParamDto) {
     const transaction = await this.transactionService.getTransactionById(
       params.id,
     );
-    return plainToInstance(TransactionWithCategory, transaction, {
+    return plainToInstance(TransactionWithCategoryResponse, transaction, {
       excludeExtraneousValues: true,
     });
   }
@@ -61,14 +61,14 @@ export class TransactionController {
   @ApiResponse({
     status: 201,
     description: 'The record has been successfully created.',
-    type: Transaction,
+    type: TransactionResponse,
   })
   @ApiResponse({ status: 400, description: 'Bad Request.' })
   @ApiResponse({ status: 404, description: 'Category or wallet not found' })
   async createNewTransaction(@Body() transactionDto: CreateTransactionDto) {
     const transaction =
       await this.transactionService.createNewTransaction(transactionDto);
-    return plainToInstance(Transaction, transaction, {
+    return plainToInstance(TransactionResponse, transaction, {
       excludeExtraneousValues: true,
     });
   }
@@ -78,7 +78,7 @@ export class TransactionController {
   @ApiResponse({
     status: 200,
     description: 'The record has been successfully updated.',
-    type: Transaction,
+    type: TransactionResponse,
   })
   @ApiResponse({ status: 400, description: 'Bad Request.' })
   @ApiResponse({
@@ -93,7 +93,7 @@ export class TransactionController {
       params.id,
       dto,
     );
-    return plainToInstance(Transaction, transaction, {
+    return plainToInstance(TransactionResponse, transaction, {
       excludeExtraneousValues: true,
     });
   }

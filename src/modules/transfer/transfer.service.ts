@@ -18,9 +18,7 @@ export class TransferService {
     private walletService: WalletService,
   ) {}
 
-  async createNewTransfer(
-    dto: CreateTransferDto,
-  ): Promise<{ transferGroupId: string }> {
+  async createNewTransfer(dto: CreateTransferDto) {
     if (dto.fromWalletId === dto.toWalletId) {
       throw new BadRequestException(
         'The fromWalletId and toWalletId must not be the same',
@@ -37,8 +35,9 @@ export class TransferService {
     }
 
     const date = dto.date ? new Date(dto.date) : undefined;
+    const transferGroupId = createId();
 
-    const transferGroupId = await this.kysely
+    const transactions = await this.kysely
       .transaction()
       .setIsolationLevel('serializable')
       .execute(async (tx) => {
@@ -52,8 +51,6 @@ export class TransferService {
           -dto.amountInCents,
           tx,
         );
-
-        const transferGroupId = createId();
 
         await tx
           .insertInto('Transaction')
@@ -89,17 +86,18 @@ export class TransferService {
           })
           .execute();
 
-        return transferGroupId;
+        return await tx
+          .selectFrom('Transaction')
+          .selectAll()
+          .where('transferGroupId', '=', transferGroupId)
+          .execute();
       });
 
-    return { transferGroupId };
+    return { transferGroupId, transactions };
   }
 
-  async updateNewTransfer(
-    transferGroupId: string,
-    dto: UpdateTransferDto,
-  ): Promise<{ transferGroupId: string }> {
-    await this.kysely
+  async updateNewTransfer(transferGroupId: string, dto: UpdateTransferDto) {
+    const transactions = await this.kysely
       .transaction()
       .setIsolationLevel('serializable')
       .execute(async (tx) => {
@@ -179,9 +177,15 @@ export class TransferService {
             .where('transferGroupId', '=', transferGroupId)
             .execute();
         }
+
+        return await tx
+          .selectFrom('Transaction')
+          .selectAll()
+          .where('transferGroupId', '=', transferGroupId)
+          .execute();
       });
 
-    return { transferGroupId };
+    return { transferGroupId, transactions };
   }
 
   async deleteTransfer(transferGroupId: string) {

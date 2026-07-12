@@ -2,15 +2,10 @@ import { IsCuid } from '@/common/decorators/is-cuid.decorator';
 import { TransactionType } from '@prisma/client';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import {
-  IsDateString,
-  IsEnum,
-  IsInt,
-  IsOptional,
-  Min,
-} from 'class-validator';
+import { IsEnum, IsInt, IsOptional, Min } from 'class-validator';
+import { DateRangeDto } from '@/common/dto/date-range.dto';
 
-export class TransactionFilterDto {
+export class TransactionFilterDto extends DateRangeDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
@@ -21,7 +16,7 @@ export class TransactionFilterDto {
   @IsInt()
   @Min(1)
   @IsOptional()
-  readonly length?: number;
+  readonly pageSize?: number;
 
   @IsOptional()
   @IsCuid()
@@ -34,13 +29,5 @@ export class TransactionFilterDto {
   @ApiPropertyOptional({ enum: TransactionType, enumName: 'TransactionType' })
   @IsEnum(TransactionType)
   @IsOptional()
-  readonly transactionType?: TransactionType;
-
-  @IsDateString()
-  @IsOptional()
-  readonly from?: string;
-
-  @IsDateString()
-  @IsOptional()
-  readonly to?: string;
+  readonly type?: TransactionType;
 }

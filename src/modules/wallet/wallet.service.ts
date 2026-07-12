@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma, Wallet } from '@prisma/client';
-import { StatsFiltersDto } from './dto/get-stats.dto';
+import { StatsFiltersDto } from './dto/stats-filters.dto';
 import { KyselyService } from '../kysely/kysely.service';
 import { Kysely } from 'kysely';
 import { DB } from '@/db/types';
@@ -70,9 +70,7 @@ export class WalletService {
 
     for (const walletId of walletIds) {
       if (!foundWalletIds.has(walletId)) {
-        throw new NotFoundException(
-          `The wallet with id ${walletId} not found`,
-        );
+        throw new NotFoundException(`The wallet with id ${walletId} not found`);
       }
     }
   }
@@ -99,7 +97,9 @@ export class WalletService {
       .select([
         'Category.name',
         (eb) =>
-          eb.fn<number>('abs', [eb.fn.sum('amountInCents')]).as('totalAmount'),
+          eb
+            .fn<number>('abs', [eb.fn.sum('amountInCents')])
+            .as('totalAmountInCents'),
         'Category.type',
       ])
       .where('Transaction.walletId', '=', query.walletId)
@@ -122,7 +122,7 @@ export class WalletService {
 
     return result.map((categoryTotal) => ({
       ...categoryTotal,
-      totalAmount: String(categoryTotal.totalAmount),
+      totalAmountInCents: String(categoryTotal.totalAmountInCents),
     }));
   }
 }

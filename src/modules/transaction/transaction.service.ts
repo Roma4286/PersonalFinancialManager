@@ -7,14 +7,14 @@ import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { Transaction, TransactionType } from '@prisma/client';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
-import { TransactionFilterDto } from './dto/get-transactions.dto';
+import { TransactionFilterDto } from './dto/transaction-filter.dto';
 import { WalletService } from '../wallet/wallet.service';
 import { CategoryService } from '../category/category.service';
 
 @Injectable()
 export class TransactionService {
-  DEFAULT_PAGE_SIZE = 100;
-  MAX_PAGE_SIZE = 1000;
+  private readonly DEFAULT_PAGE_SIZE = 100;
+  private readonly MAX_PAGE_SIZE = 1000;
   constructor(
     private prisma: PrismaService,
     private walletService: WalletService,
@@ -22,15 +22,9 @@ export class TransactionService {
   ) {}
 
   async getTransactions(query: TransactionFilterDto) {
-    if (query.from && query.to) {
-      if (new Date(query.from) > new Date(query.to)) {
-        throw new BadRequestException('from must be <= to');
-      }
-    }
-
     const page = query.page ?? 1;
-    const length = Math.min(
-      query.length ?? this.DEFAULT_PAGE_SIZE,
+    const pageSize = Math.min(
+      query.pageSize ?? this.DEFAULT_PAGE_SIZE,
       this.MAX_PAGE_SIZE,
     );
 
@@ -41,10 +35,10 @@ export class TransactionService {
       where: {
         ...(query.categoryId && { categoryId: query.categoryId }),
         ...(query.walletId && { walletId: query.walletId }),
-        ...(query.transactionType && {
+        ...(query.type && {
           category: {
             is: {
-              type: query.transactionType,
+              type: query.type,
             },
           },
         }),
@@ -52,15 +46,13 @@ export class TransactionService {
           date: {
             ...(query.from && { gte: new Date(query.from) }),
             ...(query.to && {
-              lte: new Date(
-                new Date(query.to).getTime() + 24 * 60 * 60 * 1000,
-              ),
+              lte: new Date(new Date(query.to).getTime() + 24 * 60 * 60 * 1000),
             }),
           },
         }),
       },
-      skip: (page - 1) * length,
-      take: length,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
     });
   }
 
@@ -132,15 +124,19 @@ export class TransactionService {
           );
         }
 
+        const categoryId = dto.categoryId ?? oldTransaction.categoryId;
         const category = await this.categoryService.findCategoryOrThrow(
-          dto.categoryId,
+          categoryId,
           tx,
         );
 
+        const rawAmountInCents =
+          dto.amountInCents ?? Math.abs(oldTransaction.amountInCents);
+
         const newSignedAmountInCents =
           category.type === TransactionType.EXPENSE
-            ? -dto.amountInCents
-            : dto.amountInCents;
+            ? -rawAmountInCents
+            : rawAmountInCents;
 
         const balanceDelta =
           newSignedAmountInCents - oldTransaction.amountInCents;

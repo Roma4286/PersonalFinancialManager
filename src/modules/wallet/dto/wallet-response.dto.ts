@@ -1,17 +1,15 @@
 import { TransactionType } from '@prisma/client';
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose } from 'class-transformer';
+import { BaseEntityResponse } from '@/common/dto/base-entity-response.dto';
 
-export class Wallet {
-  @Expose() readonly id!: string;
+export class WalletResponse extends BaseEntityResponse {
   @Expose() readonly name!: string;
   @Expose() readonly balanceInCents!: number;
-  @Expose() readonly createdAt!: Date;
-  @Expose() readonly updatedAt!: Date;
 }
 
 export class BalanceResponse {
-  @Expose() readonly totalBalance!: number;
+  @Expose() readonly totalBalanceInCents!: number;
 }
 
 export class StatsResponse {
@@ -20,5 +18,5 @@ export class StatsResponse {
   readonly type!: TransactionType;
 
   @Expose() readonly name!: string;
-  @Expose() readonly totalAmount!: string;
+  @Expose() readonly totalAmountInCents!: string;
 }

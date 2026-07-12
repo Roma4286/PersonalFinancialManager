@@ -1,27 +1,6 @@
-import { IsCuid } from '@/common/decorators/is-cuid.decorator';
-import {
-  IsDateString,
-  IsInt,
-  IsOptional,
-  IsPositive,
-  IsString,
-  MaxLength,
-} from 'class-validator';
+import { OmitType, PartialType } from '@nestjs/swagger';
+import { CreateTransactionDto } from './create-transaction.dto';
 
-export class UpdateTransactionDto {
-  @IsInt()
-  @IsPositive({ message: 'Amount must be > 0' })
-  readonly amountInCents!: number;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  readonly description?: string;
-
-  @IsOptional()
-  @IsDateString()
-  readonly date?: string;
-
-  @IsCuid()
-  readonly categoryId!: string;
-}
+export class UpdateTransactionDto extends PartialType(
+  OmitType(CreateTransactionDto, ['walletId'] as const),
+) {}

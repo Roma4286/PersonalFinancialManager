@@ -5,10 +5,10 @@ import { WalletService } from './wallet.service';
 import {
   BalanceResponse,
   StatsResponse,
-  Wallet,
-} from './dto/response-wallet.dto';
-import { GetBalanceDto } from './dto/get-balance.dto';
-import { StatsFiltersDto } from './dto/get-stats.dto';
+  WalletResponse,
+} from './dto/wallet-response.dto';
+import { IdParamDto } from '@/common/dto/id-param.dto';
+import { StatsFiltersDto } from './dto/stats-filters.dto';
 
 @Controller('/wallets')
 export class WalletController {
@@ -18,12 +18,14 @@ export class WalletController {
   @ApiResponse({
     status: 200,
     description: 'Retrieve all items.',
-    type: Wallet,
+    type: WalletResponse,
     isArray: true,
   })
   async getAllWallets() {
     const wallets = await this.walletService.getAllWallets();
-    return plainToInstance(Wallet, wallets, { excludeExtraneousValues: true });
+    return plainToInstance(WalletResponse, wallets, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @Get('/:id/balance')
@@ -33,11 +35,11 @@ export class WalletController {
     type: BalanceResponse,
   })
   @ApiResponse({ status: 404, description: 'Id not found.' })
-  async getBalance(@Param() params: GetBalanceDto) {
-    const totalBalance = await this.walletService.getBalance(params.id);
+  async getBalance(@Param() { id: walletId }: IdParamDto) {
+    const totalBalanceInCents = await this.walletService.getBalance(walletId);
     return plainToInstance(
       BalanceResponse,
-      { totalBalance },
+      { totalBalanceInCents },
       { excludeExtraneousValues: true },
     );
   }

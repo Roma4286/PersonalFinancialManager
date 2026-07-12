@@ -1,21 +1,13 @@
 import { IsCuid } from '@/common/decorators/is-cuid.decorator';
-import {
-  IsDateString,
-  IsInt,
-  IsOptional,
-  IsPositive,
-  IsString,
-  MaxLength,
-} from 'class-validator';
+import { IsAmountInCents } from '@/common/decorators/is-amount-in-cents.decorator';
+import { IsDescription } from '@/common/decorators/is-description.decorator';
+import { IsDateString, IsOptional } from 'class-validator';
 
 export class CreateTransactionDto {
-  @IsInt()
-  @IsPositive({ message: 'Amount must be > 0' })
+  @IsAmountInCents()
   readonly amountInCents!: number;
 
-  @IsOptional()
-  @IsString()
-  @MaxLength(500)
+  @IsDescription()
   readonly description?: string;
 
   @IsOptional()
