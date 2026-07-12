@@ -4,10 +4,19 @@ import { Category, Prisma } from '@prisma/client';
 
 @Injectable()
 export class CategoryService {
+  private readonly RESERVED_CATEGORY_IDS = [
+    process.env.TRANSFER_EXPENSE_CATEGORY_ID,
+    process.env.TRANSFER_INCOME_CATEGORY_ID,
+  ];
+
   constructor(private prisma: PrismaService) {}
 
   async getAllCategories(): Promise<Category[]> {
     return await this.prisma.category.findMany();
+  }
+
+  isNotReserved(categoryId: string): boolean {
+    return !this.RESERVED_CATEGORY_IDS.includes(categoryId);
   }
 
   async findCategoryOrThrow(

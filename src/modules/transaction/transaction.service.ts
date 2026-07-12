@@ -75,6 +75,11 @@ export class TransactionService {
     return await this.prisma.$transaction(
       async (tx) => {
         await this.walletService.checkWallet(dto.walletId, tx);
+
+        if (!this.categoryService.isNotReserved(dto.categoryId)) {
+          throw new BadRequestException('categoryId must be a valid id');
+        }
+
         const category = await this.categoryService.findCategoryOrThrow(
           dto.categoryId,
           tx,
@@ -125,6 +130,11 @@ export class TransactionService {
         }
 
         const categoryId = dto.categoryId ?? oldTransaction.categoryId;
+
+        if (!this.categoryService.isNotReserved(categoryId)) {
+          throw new BadRequestException('categoryId must be a valid id');
+        }
+
         const category = await this.categoryService.findCategoryOrThrow(
           categoryId,
           tx,
