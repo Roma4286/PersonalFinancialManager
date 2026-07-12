@@ -1,8 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Wallet } from '@prisma/client';
+import { Prisma, Wallet } from '@prisma/client';
 import { StatsFiltersDto } from './dto/get-stats.dto';
 import { KyselyService } from '../kysely/kysely.service';
+import { Kysely } from 'kysely';
+import { DB } from '@/db/types';
 
 @Injectable()
 export class WalletService {
@@ -28,6 +30,66 @@ export class WalletService {
     }
 
     return wallet.balanceInCents;
+  }
+
+  async checkWallet(
+    walletId: string,
+    tx: Prisma.TransactionClient = this.prisma,
+  ): Promise<Wallet> {
+    const wallet = await tx.wallet.findUnique({ where: { id: walletId } });
+
+    if (!wallet) {
+      throw new NotFoundException(`The wallet with id ${walletId} not found`);
+    }
+
+    return wallet;
+  }
+
+  async updateBalance(
+    walletId: string,
+    deltaInCents: number,
+    tx: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    await tx.wallet.update({
+      where: { id: walletId },
+      data: { balanceInCents: { increment: deltaInCents } },
+    });
+  }
+
+  async checkWalletKysely(
+    walletIds: string[],
+    tx: Kysely<DB> = this.kysely,
+  ): Promise<void> {
+    const wallets = await tx
+      .selectFrom('Wallet')
+      .select(['id'])
+      .where('id', 'in', walletIds)
+      .execute();
+
+    const foundWalletIds = new Set(wallets.map((wallet) => wallet.id));
+
+    for (const walletId of walletIds) {
+      if (!foundWalletIds.has(walletId)) {
+        throw new NotFoundException(
+          `The wallet with id ${walletId} not found`,
+        );
+      }
+    }
+  }
+
+  async updateBalanceKysely(
+    walletId: string,
+    deltaInCents: number,
+    tx: Kysely<DB> = this.kysely,
+  ): Promise<void> {
+    await tx
+      .updateTable('Wallet')
+      .set((eb) => ({
+        balanceInCents: eb('balanceInCents', '+', deltaInCents),
+        updatedAt: new Date(),
+      }))
+      .where('id', '=', walletId)
+      .execute();
   }
 
   async getStats(query: StatsFiltersDto) {

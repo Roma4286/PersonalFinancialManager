@@ -8,12 +8,18 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Transaction, TransactionType } from '@prisma/client';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { TransactionFilterDto } from './dto/get-transactions.dto';
+import { WalletService } from '../wallet/wallet.service';
+import { CategoryService } from '../category/category.service';
 
 @Injectable()
 export class TransactionService {
   DEFAULT_PAGE_SIZE = 100;
   MAX_PAGE_SIZE = 1000;
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private walletService: WalletService,
+    private categoryService: CategoryService,
+  ) {}
 
   async getTransactions(query: TransactionFilterDto) {
     if (query.from && query.to) {
@@ -76,35 +82,22 @@ export class TransactionService {
   async createNewTransaction(dto: CreateTransactionDto): Promise<Transaction> {
     return await this.prisma.$transaction(
       async (tx) => {
-        const wallet = await tx.wallet.findUnique({
-          where: { id: dto.walletId },
-        });
-
-        if (!wallet) {
-          throw new NotFoundException(
-            `The wallet with id ${dto.walletId} not found`,
-          );
-        }
-
-        const category = await tx.category.findUnique({
-          where: { id: dto.categoryId },
-        });
-
-        if (!category) {
-          throw new NotFoundException(
-            `The category with id ${dto.categoryId} not found`,
-          );
-        }
+        await this.walletService.checkWallet(dto.walletId, tx);
+        const category = await this.categoryService.findCategoryOrThrow(
+          dto.categoryId,
+          tx,
+        );
 
         const signedAmountInCents =
           category.type === TransactionType.EXPENSE
             ? -dto.amountInCents
             : dto.amountInCents;
 
-        await tx.wallet.update({
-          where: { id: dto.walletId },
-          data: { balanceInCents: { increment: signedAmountInCents } },
-        });
+        await this.walletService.updateBalance(
+          dto.walletId,
+          signedAmountInCents,
+          tx,
+        );
 
         return await tx.transaction.create({
           data: {
@@ -123,10 +116,9 @@ export class TransactionService {
   async updateTransaction(transactionId: string, dto: UpdateTransactionDto) {
     return await this.prisma.$transaction(
       async (tx) => {
-        const [oldTransaction, category] = await Promise.all([
-          tx.transaction.findUnique({ where: { id: transactionId } }),
-          tx.category.findUnique({ where: { id: dto.categoryId } }),
-        ]);
+        const oldTransaction = await tx.transaction.findUnique({
+          where: { id: transactionId },
+        });
 
         if (!oldTransaction) {
           throw new NotFoundException(
@@ -140,11 +132,10 @@ export class TransactionService {
           );
         }
 
-        if (!category) {
-          throw new NotFoundException(
-            `The category with id ${dto.categoryId} not found`,
-          );
-        }
+        const category = await this.categoryService.findCategoryOrThrow(
+          dto.categoryId,
+          tx,
+        );
 
         const newSignedAmountInCents =
           category.type === TransactionType.EXPENSE
@@ -154,10 +145,11 @@ export class TransactionService {
         const balanceDelta =
           newSignedAmountInCents - oldTransaction.amountInCents;
 
-        await tx.wallet.update({
-          where: { id: oldTransaction.walletId },
-          data: { balanceInCents: { increment: balanceDelta } },
-        });
+        await this.walletService.updateBalance(
+          oldTransaction.walletId,
+          balanceDelta,
+          tx,
+        );
 
         return await tx.transaction.update({
           where: { id: transactionId },
@@ -194,12 +186,11 @@ export class TransactionService {
           );
         }
 
-        await tx.wallet.update({
-          where: { id: transaction.walletId },
-          data: {
-            balanceInCents: { increment: -transaction.amountInCents },
-          },
-        });
+        await this.walletService.updateBalance(
+          transaction.walletId,
+          -transaction.amountInCents,
+          tx,
+        );
 
         return await tx.transaction.delete({
           where: { id: transaction.id },

@@ -9,10 +9,14 @@ import { KyselyService } from '../kysely/kysely.service';
 import { createId } from '@paralleldrive/cuid2';
 import { CreateTransferDto } from './dto/create-transfer.dto';
 import { UpdateTransferDto } from './dto/update-transfer.dto';
+import { WalletService } from '../wallet/wallet.service';
 
 @Injectable()
 export class TransferService {
-  constructor(private kysely: KyselyService) {}
+  constructor(
+    private kysely: KyselyService,
+    private walletService: WalletService,
+  ) {}
 
   async createNewTransfer(
     dto: CreateTransferDto,
@@ -38,34 +42,16 @@ export class TransferService {
       .transaction()
       .setIsolationLevel('serializable')
       .execute(async (tx) => {
-        const wallets = await tx
-          .selectFrom('Wallet')
-          .select(['id'])
-          .where('id', 'in', [dto.fromWalletId, dto.toWalletId])
-          .execute();
+        await this.walletService.checkWalletKysely(
+          [dto.fromWalletId, dto.toWalletId],
+          tx,
+        );
 
-        const walletIds = new Set(wallets.map((wallet) => wallet.id));
-
-        if (!walletIds.has(dto.fromWalletId)) {
-          throw new NotFoundException(
-            `The wallet with id ${dto.fromWalletId} not found`,
-          );
-        }
-
-        if (!walletIds.has(dto.toWalletId)) {
-          throw new NotFoundException(
-            `The wallet with id ${dto.toWalletId} not found`,
-          );
-        }
-
-        await tx
-          .updateTable('Wallet')
-          .set((eb) => ({
-            balanceInCents: eb('balanceInCents', '-', dto.amountInCents),
-            updatedAt: new Date(),
-          }))
-          .where('id', '=', dto.fromWalletId)
-          .execute();
+        await this.walletService.updateBalanceKysely(
+          dto.fromWalletId,
+          -dto.amountInCents,
+          tx,
+        );
 
         const transferGroupId = createId();
 
@@ -83,14 +69,11 @@ export class TransferService {
           })
           .execute();
 
-        await tx
-          .updateTable('Wallet')
-          .set((eb) => ({
-            balanceInCents: eb('balanceInCents', '+', dto.amountInCents),
-            updatedAt: new Date(),
-          }))
-          .where('id', '=', dto.toWalletId)
-          .execute();
+        await this.walletService.updateBalanceKysely(
+          dto.toWalletId,
+          dto.amountInCents,
+          tx,
+        );
 
         await tx
           .insertInto('Transaction')
@@ -155,23 +138,17 @@ export class TransferService {
         ) {
           const delta = dto.amountInCents - incomeLeg.amountInCents;
 
-          await tx
-            .updateTable('Wallet')
-            .set((eb) => ({
-              balanceInCents: eb('balanceInCents', '-', delta),
-              updatedAt: new Date(),
-            }))
-            .where('id', '=', expenseLeg.walletId)
-            .execute();
+          await this.walletService.updateBalanceKysely(
+            expenseLeg.walletId,
+            -delta,
+            tx,
+          );
 
-          await tx
-            .updateTable('Wallet')
-            .set((eb) => ({
-              balanceInCents: eb('balanceInCents', '+', delta),
-              updatedAt: new Date(),
-            }))
-            .where('id', '=', incomeLeg.walletId)
-            .execute();
+          await this.walletService.updateBalanceKysely(
+            incomeLeg.walletId,
+            delta,
+            tx,
+          );
 
           await tx
             .updateTable('Transaction')
@@ -225,14 +202,11 @@ export class TransferService {
         for (const transaction of transactions) {
           const reversalDelta = -transaction.amountInCents;
 
-          await tx
-            .updateTable('Wallet')
-            .set((eb) => ({
-              balanceInCents: eb('balanceInCents', '+', reversalDelta),
-              updatedAt: new Date(),
-            }))
-            .where('id', '=', transaction.walletId)
-            .execute();
+          await this.walletService.updateBalanceKysely(
+            transaction.walletId,
+            reversalDelta,
+            tx,
+          );
         }
 
         await tx
