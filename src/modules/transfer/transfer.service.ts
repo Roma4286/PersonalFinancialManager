@@ -5,11 +5,22 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { TransactionType } from '@prisma/client';
+import { Kysely } from 'kysely';
+import { DB } from '@/db/types';
 import { KyselyService } from '../kysely/kysely.service';
 import { createId } from '@paralleldrive/cuid2';
 import { CreateTransferDto } from './dto/create-transfer.dto';
 import { UpdateTransferDto } from './dto/update-transfer.dto';
 import { WalletService } from '../wallet/wallet.service';
+
+interface TransferLegInput {
+  transferGroupId: string;
+  walletId: string;
+  categoryId: string;
+  amountInCents: number;
+  description?: string;
+  date?: Date;
+}
 
 @Injectable()
 export class TransferService {
@@ -17,6 +28,42 @@ export class TransferService {
     private kysely: KyselyService,
     private walletService: WalletService,
   ) {}
+
+  private async loadTransferLegs(tx: Kysely<DB>, transferGroupId: string) {
+    const legs = await tx
+      .selectFrom('Transaction')
+      .innerJoin('Category', 'Category.id', 'Transaction.categoryId')
+      .select([
+        'Transaction.id',
+        'Transaction.walletId',
+        'Transaction.amountInCents',
+        'Category.type',
+      ])
+      .where('transferGroupId', '=', transferGroupId)
+      .execute();
+
+    if (legs.length !== 2) {
+      throw new NotFoundException(`Transfer ${transferGroupId} not found`);
+    }
+
+    return legs;
+  }
+
+  private insertTransferLeg(tx: Kysely<DB>, leg: TransferLegInput) {
+    return tx
+      .insertInto('Transaction')
+      .values({
+        id: createId(),
+        updatedAt: new Date(),
+        categoryId: leg.categoryId,
+        walletId: leg.walletId,
+        description: leg.description,
+        amountInCents: leg.amountInCents,
+        ...(leg.date && { date: leg.date }),
+        transferGroupId: leg.transferGroupId,
+      })
+      .execute();
+  }
 
   async createNewTransfer(dto: CreateTransferDto) {
     if (dto.fromWalletId === dto.toWalletId) {
@@ -52,19 +99,14 @@ export class TransferService {
           tx,
         );
 
-        await tx
-          .insertInto('Transaction')
-          .values({
-            id: createId(),
-            updatedAt: new Date(),
-            categoryId: transferExpenseCategoryId,
-            walletId: dto.fromWalletId,
-            description: dto.description,
-            amountInCents: -dto.amountInCents,
-            ...(date && { date }),
-            transferGroupId: transferGroupId,
-          })
-          .execute();
+        await this.insertTransferLeg(tx, {
+          transferGroupId,
+          walletId: dto.fromWalletId,
+          categoryId: transferExpenseCategoryId,
+          amountInCents: -dto.amountInCents,
+          description: dto.description,
+          date,
+        });
 
         await this.walletService.updateBalanceKysely(
           dto.toWalletId,
@@ -72,19 +114,14 @@ export class TransferService {
           tx,
         );
 
-        await tx
-          .insertInto('Transaction')
-          .values({
-            id: createId(),
-            updatedAt: new Date(),
-            categoryId: transferIncomeCategoryId,
-            walletId: dto.toWalletId,
-            description: dto.description,
-            amountInCents: dto.amountInCents,
-            ...(date && { date }),
-            transferGroupId: transferGroupId,
-          })
-          .execute();
+        await this.insertTransferLeg(tx, {
+          transferGroupId,
+          walletId: dto.toWalletId,
+          categoryId: transferIncomeCategoryId,
+          amountInCents: dto.amountInCents,
+          description: dto.description,
+          date,
+        });
 
         return await tx
           .selectFrom('Transaction')
@@ -101,27 +138,13 @@ export class TransferService {
       .transaction()
       .setIsolationLevel('serializable')
       .execute(async (tx) => {
-        const transactions = await tx
-          .selectFrom('Transaction')
-          .innerJoin('Category', 'Category.id', 'Transaction.categoryId')
-          .select([
-            'Transaction.id',
-            'Transaction.walletId',
-            'Transaction.amountInCents',
-            'Category.type',
-          ])
-          .where('transferGroupId', '=', transferGroupId)
-          .execute();
+        const legs = await this.loadTransferLegs(tx, transferGroupId);
 
-        if (transactions.length !== 2) {
-          throw new NotFoundException(`Transfer ${transferGroupId} not found`);
-        }
-
-        const expenseLeg = transactions.find(
-          (transaction) => transaction.type === TransactionType.EXPENSE,
+        const expenseLeg = legs.find(
+          (leg) => leg.type === TransactionType.EXPENSE,
         );
-        const incomeLeg = transactions.find(
-          (transaction) => transaction.type === TransactionType.INCOME,
+        const incomeLeg = legs.find(
+          (leg) => leg.type === TransactionType.INCOME,
         );
 
         if (!expenseLeg || !incomeLeg) {
@@ -193,21 +216,13 @@ export class TransferService {
       .transaction()
       .setIsolationLevel('serializable')
       .execute(async (tx) => {
-        const transactions = await tx
-          .selectFrom('Transaction')
-          .select(['id', 'walletId', 'amountInCents'])
-          .where('transferGroupId', '=', transferGroupId)
-          .execute();
+        const legs = await this.loadTransferLegs(tx, transferGroupId);
 
-        if (transactions.length !== 2) {
-          throw new NotFoundException(`Transfer ${transferGroupId} not found`);
-        }
-
-        for (const transaction of transactions) {
-          const reversalDelta = -transaction.amountInCents;
+        for (const leg of legs) {
+          const reversalDelta = -leg.amountInCents;
 
           await this.walletService.updateBalanceKysely(
-            transaction.walletId,
+            leg.walletId,
             reversalDelta,
             tx,
           );
