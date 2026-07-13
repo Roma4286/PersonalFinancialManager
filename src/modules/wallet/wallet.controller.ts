@@ -8,7 +8,7 @@ import {
   WalletResponse,
 } from './dto/wallet-response.dto';
 import { IdParamDto } from '@/common/dto/id-param.dto';
-import { StatsFiltersDto } from './dto/stats-filters.dto';
+import { DateRangeDto } from '@/common/dto/date-range.dto';
 
 @Controller('/wallets')
 export class WalletController {
@@ -44,15 +44,19 @@ export class WalletController {
     );
   }
 
-  @Get('/stats')
+  @Get('/:id/stats')
   @ApiResponse({
     status: 200,
     description: 'Retrieve all items.',
     type: StatsResponse,
     isArray: true,
   })
-  async getStats(@Query() query: StatsFiltersDto) {
-    const stats = await this.walletService.getStats(query);
+  @ApiResponse({ status: 404, description: 'Id not found.' })
+  async getStats(
+    @Param() { id: walletId }: IdParamDto,
+    @Query() query: DateRangeDto,
+  ) {
+    const stats = await this.walletService.getStats(walletId, query);
     return plainToInstance(StatsResponse, stats, {
       excludeExtraneousValues: true,
     });

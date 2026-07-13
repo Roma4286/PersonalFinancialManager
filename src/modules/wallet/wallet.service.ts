@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma, Wallet } from '@prisma/client';
-import { StatsFiltersDto } from './dto/stats-filters.dto';
+import { DateRangeDto } from '@/common/dto/date-range.dto';
 import { KyselyService } from '../kysely/kysely.service';
 import { Kysely } from 'kysely';
 import { DB } from '@/db/types';
@@ -90,7 +90,9 @@ export class WalletService {
       .execute();
   }
 
-  async getStats(query: StatsFiltersDto) {
+  async getStats(walletId: string, query: DateRangeDto) {
+    await this.checkWallet(walletId);
+
     let queryBuilder = this.kysely
       .selectFrom('Transaction')
       .innerJoin('Category', 'Category.id', 'Transaction.categoryId')
@@ -102,7 +104,7 @@ export class WalletService {
             .as('totalAmountInCents'),
         'Category.type',
       ])
-      .where('Transaction.walletId', '=', query.walletId)
+      .where('Transaction.walletId', '=', walletId)
       .where('Transaction.transferGroupId', 'is', null)
       .groupBy(['Transaction.categoryId', 'Category.name', 'Category.type']);
 
