@@ -47,7 +47,7 @@ export class TransactionController {
     type: TransactionWithCategoryResponse,
   })
   @ApiResponse({ status: 404, description: 'Id not found.' })
-  async getOneTransaction(@Param() params: IdParamDto) {
+  async getTransactionById(@Param() params: IdParamDto) {
     const transaction = await this.transactionService.getTransactionById(
       params.id,
     );

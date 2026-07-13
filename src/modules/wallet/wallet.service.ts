@@ -100,7 +100,7 @@ export class WalletService {
         'Category.name',
         (eb) =>
           eb
-            .fn<number>('abs', [eb.fn.sum('amountInCents')])
+            .fn<string>('abs', [eb.fn.sum('amountInCents')])
             .as('totalAmountInCents'),
         'Category.type',
       ])
