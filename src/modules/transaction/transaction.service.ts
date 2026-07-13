@@ -21,6 +21,10 @@ export class TransactionService {
     private categoryService: CategoryService,
   ) {}
 
+  private signAmount(type: TransactionType, amountInCents: number): number {
+    return type === TransactionType.EXPENSE ? -amountInCents : amountInCents;
+  }
+
   async getTransactions(query: TransactionFilterDto) {
     const page = query.page ?? 1;
     const pageSize = Math.min(
@@ -85,10 +89,10 @@ export class TransactionService {
           tx,
         );
 
-        const signedAmountInCents =
-          category.type === TransactionType.EXPENSE
-            ? -dto.amountInCents
-            : dto.amountInCents;
+        const signedAmountInCents = this.signAmount(
+          category.type,
+          dto.amountInCents,
+        );
 
         await this.walletService.updateBalance(
           dto.walletId,
@@ -143,10 +147,10 @@ export class TransactionService {
         const rawAmountInCents =
           dto.amountInCents ?? Math.abs(oldTransaction.amountInCents);
 
-        const newSignedAmountInCents =
-          category.type === TransactionType.EXPENSE
-            ? -rawAmountInCents
-            : rawAmountInCents;
+        const newSignedAmountInCents = this.signAmount(
+          category.type,
+          rawAmountInCents,
+        );
 
         const balanceDelta =
           newSignedAmountInCents - oldTransaction.amountInCents;
