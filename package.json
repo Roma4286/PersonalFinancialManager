@@ -8,7 +8,7 @@
     "lint": "npx eslint . ",
     "lint:fix": "npx eslint . --fix",
     "docker:start": "docker-compose up -d",
-    "docker:stop": "docker-compose down -v",
+    "docker:stop": "docker-compose down",
     "db:migrate": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:generate": "prisma generate && npx prettier --write src/db/types.ts",
