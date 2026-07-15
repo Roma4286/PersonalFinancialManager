@@ -12,6 +12,7 @@ import { createId } from '@paralleldrive/cuid2';
 import { CreateTransferDto } from './dto/create-transfer.dto';
 import { UpdateTransferDto } from './dto/update-transfer.dto';
 import { WalletService } from '../wallet/wallet.service';
+import { withSerializableRetry } from '@/common/utils/with-serializable-retry';
 
 interface TransferLegInput {
   transferGroupId: string;
@@ -98,154 +99,160 @@ export class TransferService {
     const date = dto.date ? new Date(dto.date) : undefined;
     const transferGroupId = createId();
 
-    const transactions = await this.kysely
-      .transaction()
-      .setIsolationLevel('serializable')
-      .execute(async (tx) => {
-        await this.walletService.checkWalletKysely(
-          [dto.fromWalletId, dto.toWalletId],
-          tx,
-        );
+    const transactions = await withSerializableRetry(() =>
+      this.kysely
+        .transaction()
+        .setIsolationLevel('serializable')
+        .execute(async (tx) => {
+          await this.walletService.checkWalletKysely(
+            [dto.fromWalletId, dto.toWalletId],
+            tx,
+          );
 
-        await this.walletService.updateBalanceKysely(
-          dto.fromWalletId,
-          -dto.amountInCents,
-          tx,
-        );
+          await this.walletService.updateBalanceKysely(
+            dto.fromWalletId,
+            -dto.amountInCents,
+            tx,
+          );
 
-        await this.insertTransferLeg(tx, {
-          transferGroupId,
-          walletId: dto.fromWalletId,
-          categoryId: transferExpenseCategoryId,
-          amountInCents: -dto.amountInCents,
-          description: dto.description,
-          date,
-        });
+          await this.insertTransferLeg(tx, {
+            transferGroupId,
+            walletId: dto.fromWalletId,
+            categoryId: transferExpenseCategoryId,
+            amountInCents: -dto.amountInCents,
+            description: dto.description,
+            date,
+          });
 
-        await this.walletService.updateBalanceKysely(
-          dto.toWalletId,
-          dto.amountInCents,
-          tx,
-        );
+          await this.walletService.updateBalanceKysely(
+            dto.toWalletId,
+            dto.amountInCents,
+            tx,
+          );
 
-        await this.insertTransferLeg(tx, {
-          transferGroupId,
-          walletId: dto.toWalletId,
-          categoryId: transferIncomeCategoryId,
-          amountInCents: dto.amountInCents,
-          description: dto.description,
-          date,
-        });
+          await this.insertTransferLeg(tx, {
+            transferGroupId,
+            walletId: dto.toWalletId,
+            categoryId: transferIncomeCategoryId,
+            amountInCents: dto.amountInCents,
+            description: dto.description,
+            date,
+          });
 
-        return await tx
-          .selectFrom('Transaction')
-          .selectAll()
-          .where('transferGroupId', '=', transferGroupId)
-          .execute();
-      });
+          return await tx
+            .selectFrom('Transaction')
+            .selectAll()
+            .where('transferGroupId', '=', transferGroupId)
+            .execute();
+        }),
+    );
 
     return { transferGroupId, transactions };
   }
 
   async updateNewTransfer(transferGroupId: string, dto: UpdateTransferDto) {
-    const transactions = await this.kysely
-      .transaction()
-      .setIsolationLevel('serializable')
-      .execute(async (tx) => {
-        const legs = await this.loadTransferLegs(tx, transferGroupId);
+    const transactions = await withSerializableRetry(() =>
+      this.kysely
+        .transaction()
+        .setIsolationLevel('serializable')
+        .execute(async (tx) => {
+          const legs = await this.loadTransferLegs(tx, transferGroupId);
 
-        const expenseLeg = legs.find(
-          (leg) => leg.type === TransactionType.EXPENSE,
-        );
-        const incomeLeg = legs.find(
-          (leg) => leg.type === TransactionType.INCOME,
-        );
-
-        if (!expenseLeg || !incomeLeg) {
-          throw new InternalServerErrorException(
-            `Transfer ${transferGroupId} is malformed`,
+          const expenseLeg = legs.find(
+            (leg) => leg.type === TransactionType.EXPENSE,
           );
-        }
-
-        if (
-          dto.amountInCents !== undefined &&
-          dto.amountInCents !== incomeLeg.amountInCents
-        ) {
-          const delta = dto.amountInCents - incomeLeg.amountInCents;
-
-          await this.walletService.updateBalanceKysely(
-            expenseLeg.walletId,
-            -delta,
-            tx,
+          const incomeLeg = legs.find(
+            (leg) => leg.type === TransactionType.INCOME,
           );
 
-          await this.walletService.updateBalanceKysely(
-            incomeLeg.walletId,
-            delta,
-            tx,
-          );
+          if (!expenseLeg || !incomeLeg) {
+            throw new InternalServerErrorException(
+              `Transfer ${transferGroupId} is malformed`,
+            );
+          }
 
-          await tx
-            .updateTable('Transaction')
-            .set({ amountInCents: -dto.amountInCents, updatedAt: new Date() })
-            .where('id', '=', expenseLeg.id)
-            .execute();
+          if (
+            dto.amountInCents !== undefined &&
+            dto.amountInCents !== incomeLeg.amountInCents
+          ) {
+            const delta = dto.amountInCents - incomeLeg.amountInCents;
 
-          await tx
-            .updateTable('Transaction')
-            .set({ amountInCents: dto.amountInCents, updatedAt: new Date() })
-            .where('id', '=', incomeLeg.id)
-            .execute();
-        }
+            await this.walletService.updateBalanceKysely(
+              expenseLeg.walletId,
+              -delta,
+              tx,
+            );
 
-        const commonUpdateData = {
-          ...(dto.date !== undefined && {
-            date: new Date(dto.date),
-          }),
-          ...(dto.description !== undefined && {
-            description: dto.description,
-          }),
-        };
+            await this.walletService.updateBalanceKysely(
+              incomeLeg.walletId,
+              delta,
+              tx,
+            );
 
-        if (Object.keys(commonUpdateData).length > 0) {
-          await tx
-            .updateTable('Transaction')
-            .set({ ...commonUpdateData, updatedAt: new Date() })
+            await tx
+              .updateTable('Transaction')
+              .set({ amountInCents: -dto.amountInCents, updatedAt: new Date() })
+              .where('id', '=', expenseLeg.id)
+              .execute();
+
+            await tx
+              .updateTable('Transaction')
+              .set({ amountInCents: dto.amountInCents, updatedAt: new Date() })
+              .where('id', '=', incomeLeg.id)
+              .execute();
+          }
+
+          const commonUpdateData = {
+            ...(dto.date !== undefined && {
+              date: new Date(dto.date),
+            }),
+            ...(dto.description !== undefined && {
+              description: dto.description,
+            }),
+          };
+
+          if (Object.keys(commonUpdateData).length > 0) {
+            await tx
+              .updateTable('Transaction')
+              .set({ ...commonUpdateData, updatedAt: new Date() })
+              .where('transferGroupId', '=', transferGroupId)
+              .execute();
+          }
+
+          return await tx
+            .selectFrom('Transaction')
+            .selectAll()
             .where('transferGroupId', '=', transferGroupId)
             .execute();
-        }
-
-        return await tx
-          .selectFrom('Transaction')
-          .selectAll()
-          .where('transferGroupId', '=', transferGroupId)
-          .execute();
-      });
+        }),
+    );
 
     return { transferGroupId, transactions };
   }
 
   async deleteTransfer(transferGroupId: string) {
-    return await this.kysely
-      .transaction()
-      .setIsolationLevel('serializable')
-      .execute(async (tx) => {
-        const legs = await this.loadTransferLegs(tx, transferGroupId);
+    return await withSerializableRetry(() =>
+      this.kysely
+        .transaction()
+        .setIsolationLevel('serializable')
+        .execute(async (tx) => {
+          const legs = await this.loadTransferLegs(tx, transferGroupId);
 
-        for (const leg of legs) {
-          const reversalDelta = -leg.amountInCents;
+          for (const leg of legs) {
+            const reversalDelta = -leg.amountInCents;
 
-          await this.walletService.updateBalanceKysely(
-            leg.walletId,
-            reversalDelta,
-            tx,
-          );
-        }
+            await this.walletService.updateBalanceKysely(
+              leg.walletId,
+              reversalDelta,
+              tx,
+            );
+          }
 
-        await tx
-          .deleteFrom('Transaction')
-          .where('transferGroupId', '=', transferGroupId)
-          .execute();
-      });
+          await tx
+            .deleteFrom('Transaction')
+            .where('transferGroupId', '=', transferGroupId)
+            .execute();
+        }),
+    );
   }
 }
