@@ -8,10 +8,10 @@ import {
   HttpCode,
   HttpStatus,
   Patch,
+  SerializeOptions,
 } from '@nestjs/common';
 import { TransferService } from './transfer.service';
 import { ApiResponse } from '@nestjs/swagger';
-import { plainToInstance } from 'class-transformer';
 import { CreateTransferDto } from './dto/create-transfer.dto';
 import { TransferGroupIdParamDto } from './dto/transfer-group-id-param.dto';
 import { UpdateTransferDto } from './dto/update-transfer.dto';
@@ -22,6 +22,7 @@ export class TransferController {
   constructor(private transferService: TransferService) {}
 
   @Get('/:transferGroupId')
+  @SerializeOptions({ type: TransferResponse, excludeExtraneousValues: true })
   @ApiResponse({
     status: 200,
     description: 'Retrieve one transfer.',
@@ -29,16 +30,12 @@ export class TransferController {
   })
   @ApiResponse({ status: 404, description: 'Transfer not found' })
   async getTransfer(@Param() params: TransferGroupIdParamDto) {
-    const transfer = await this.transferService.getTransfer(
-      params.transferGroupId,
-    );
-    return plainToInstance(TransferResponse, transfer, {
-      excludeExtraneousValues: true,
-    });
+    return await this.transferService.getTransfer(params.transferGroupId);
   }
 
   @Post('/')
   @HttpCode(HttpStatus.CREATED)
+  @SerializeOptions({ type: TransferResponse, excludeExtraneousValues: true })
   @ApiResponse({
     status: 201,
     description: 'The record has been successfully created.',
@@ -47,14 +44,12 @@ export class TransferController {
   @ApiResponse({ status: 400, description: 'Bad Request.' })
   @ApiResponse({ status: 404, description: 'Wallet not found' })
   async createNewTransfer(@Body() transferDto: CreateTransferDto) {
-    const transfer = await this.transferService.createNewTransfer(transferDto);
-    return plainToInstance(TransferResponse, transfer, {
-      excludeExtraneousValues: true,
-    });
+    return await this.transferService.createNewTransfer(transferDto);
   }
 
   @Patch('/:transferGroupId')
   @HttpCode(HttpStatus.OK)
+  @SerializeOptions({ type: TransferResponse, excludeExtraneousValues: true })
   @ApiResponse({
     status: 200,
     description: 'The record has been successfully updated.',
@@ -69,13 +64,10 @@ export class TransferController {
     @Param() params: TransferGroupIdParamDto,
     @Body() dto: UpdateTransferDto,
   ) {
-    const transfer = await this.transferService.updateNewTransfer(
+    return await this.transferService.updateNewTransfer(
       params.transferGroupId,
       dto,
     );
-    return plainToInstance(TransferResponse, transfer, {
-      excludeExtraneousValues: true,
-    });
   }
 
   @Delete('/:transferGroupId')

@@ -1,6 +1,11 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Query,
+  SerializeOptions,
+} from '@nestjs/common';
 import { ApiResponse } from '@nestjs/swagger';
-import { plainToInstance } from 'class-transformer';
 import { WalletService } from './wallet.service';
 import {
   BalanceResponse,
@@ -15,6 +20,7 @@ export class WalletController {
   constructor(private walletService: WalletService) {}
 
   @Get('/')
+  @SerializeOptions({ type: WalletResponse, excludeExtraneousValues: true })
   @ApiResponse({
     status: 200,
     description: 'Retrieve all items.',
@@ -22,13 +28,11 @@ export class WalletController {
     isArray: true,
   })
   async getAllWallets() {
-    const wallets = await this.walletService.getAllWallets();
-    return plainToInstance(WalletResponse, wallets, {
-      excludeExtraneousValues: true,
-    });
+    return await this.walletService.getAllWallets();
   }
 
   @Get('/:id/balance')
+  @SerializeOptions({ type: BalanceResponse, excludeExtraneousValues: true })
   @ApiResponse({
     status: 200,
     description: 'Financial Summary.',
@@ -37,14 +41,11 @@ export class WalletController {
   @ApiResponse({ status: 404, description: 'Id not found.' })
   async getBalance(@Param() { id: walletId }: IdParamDto) {
     const totalBalanceInCents = await this.walletService.getBalance(walletId);
-    return plainToInstance(
-      BalanceResponse,
-      { totalBalanceInCents },
-      { excludeExtraneousValues: true },
-    );
+    return { totalBalanceInCents };
   }
 
   @Get('/:id/stats')
+  @SerializeOptions({ type: StatsResponse, excludeExtraneousValues: true })
   @ApiResponse({
     status: 200,
     description: 'Retrieve all items.',
@@ -56,9 +57,6 @@ export class WalletController {
     @Param() { id: walletId }: IdParamDto,
     @Query() query: DateRangeDto,
   ) {
-    const stats = await this.walletService.getStats(walletId, query);
-    return plainToInstance(StatsResponse, stats, {
-      excludeExtraneousValues: true,
-    });
+    return await this.walletService.getStats(walletId, query);
   }
 }
