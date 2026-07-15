@@ -31,16 +31,23 @@ async function main() {
   ];
 
   for (const category of categories) {
-    await prisma.category.upsert({
+    const existing = await prisma.category.findUnique({
       where: {
         name_type: {
           name: category.name,
           type: category.type,
         },
       },
-      update: {},
-      create: category,
     });
+
+    if (!existing) {
+      await prisma.category.create({ data: category });
+    } else if (category.id && existing.id !== category.id) {
+      await prisma.category.update({
+        where: { id: existing.id },
+        data: { id: category.id },
+      });
+    }
   }
 
   const wallets = [{ name: 'Wallet' }, { name: 'Card' }];
