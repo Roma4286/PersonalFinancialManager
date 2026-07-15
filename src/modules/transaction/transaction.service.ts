@@ -34,9 +34,7 @@ export class TransactionService {
     );
 
     return await this.prisma.transaction.findMany({
-      orderBy: {
-        date: 'desc',
-      },
+      orderBy: [{ date: 'desc' }, { id: 'desc' }],
       where: {
         ...(query.categoryId && { categoryId: query.categoryId }),
         ...(query.walletId && { walletId: query.walletId }),
