@@ -65,6 +65,20 @@ export class TransferService {
       .execute();
   }
 
+  async getTransfer(transferGroupId: string) {
+    const transactions = await this.kysely
+      .selectFrom('Transaction')
+      .selectAll()
+      .where('transferGroupId', '=', transferGroupId)
+      .execute();
+
+    if (transactions.length === 0) {
+      throw new NotFoundException(`Transfer ${transferGroupId} not found`);
+    }
+
+    return { transferGroupId, transactions };
+  }
+
   async createNewTransfer(dto: CreateTransferDto) {
     if (dto.fromWalletId === dto.toWalletId) {
       throw new BadRequestException(

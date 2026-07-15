@@ -8,6 +8,7 @@ export class TransactionResponse extends BaseEntityResponse {
   @Expose() readonly date!: Date;
   @Expose() readonly walletId!: string;
   @Expose() readonly categoryId!: string;
+  @Expose() readonly transferGroupId?: string | null;
 }
 
 export class TransactionWithCategoryResponse extends TransactionResponse {

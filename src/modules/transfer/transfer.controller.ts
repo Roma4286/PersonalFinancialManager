@@ -1,6 +1,7 @@
 import {
   Controller,
   Delete,
+  Get,
   Post,
   Param,
   Body,
@@ -19,6 +20,22 @@ import { TransferResponse } from './dto/transfer-response.dto';
 @Controller('/transactions/transfers')
 export class TransferController {
   constructor(private transferService: TransferService) {}
+
+  @Get('/:transferGroupId')
+  @ApiResponse({
+    status: 200,
+    description: 'Retrieve one transfer.',
+    type: TransferResponse,
+  })
+  @ApiResponse({ status: 404, description: 'Transfer not found' })
+  async getTransfer(@Param() params: TransferGroupIdParamDto) {
+    const transfer = await this.transferService.getTransfer(
+      params.transferGroupId,
+    );
+    return plainToInstance(TransferResponse, transfer, {
+      excludeExtraneousValues: true,
+    });
+  }
 
   @Post('/')
   @HttpCode(HttpStatus.CREATED)
