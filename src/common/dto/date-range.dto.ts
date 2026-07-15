@@ -1,12 +1,13 @@
-import { IsDateString, IsOptional } from 'class-validator';
+import { IsOptional } from 'class-validator';
 import { IsAfterOrEqual } from '../decorators/is-after-or-equal.decorator';
+import { IsDateOnly } from '../decorators/is-date-only.decorator';
 
 export class DateRangeDto {
-  @IsDateString()
+  @IsDateOnly()
   @IsOptional()
   readonly from?: string;
 
-  @IsDateString()
+  @IsDateOnly()
   @IsOptional()
   @IsAfterOrEqual('from', { message: 'from must be <= to' })
   readonly to?: string;

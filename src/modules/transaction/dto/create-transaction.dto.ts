@@ -11,7 +11,7 @@ export class CreateTransactionDto {
   readonly description?: string;
 
   @IsOptional()
-  @IsDateString()
+  @IsDateString({ strict: true })
   readonly date?: string;
 
   @IsCuid()

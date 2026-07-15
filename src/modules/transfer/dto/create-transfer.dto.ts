@@ -14,7 +14,7 @@ export class CreateTransferDto {
   readonly amountInCents!: number;
 
   @IsOptional()
-  @IsDateString()
+  @IsDateString({ strict: true })
   readonly date?: string;
 
   @IsDescription()
