@@ -135,7 +135,7 @@ export class TransferService {
     return { transferGroupId, transactions };
   }
 
-  async createNewTransfer(dto: CreateTransferDto) {
+  async createTransfer(dto: CreateTransferDto) {
     if (dto.fromWalletId === dto.toWalletId) {
       throw new BadRequestException(
         'The fromWalletId and toWalletId must not be the same',
@@ -211,7 +211,7 @@ export class TransferService {
     return { transferGroupId, transactions };
   }
 
-  async updateNewTransfer(transferGroupId: string, dto: UpdateTransferDto) {
+  async updateTransfer(transferGroupId: string, dto: UpdateTransferDto) {
     const transactions = await withSerializableRetry(() =>
       this.kysely
         .transaction()

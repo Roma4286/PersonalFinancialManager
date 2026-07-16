@@ -84,8 +84,8 @@ export class TransactionController {
   })
   @ApiResponse({ status: 400, description: 'Bad Request.' })
   @ApiResponse({ status: 404, description: 'Category or wallet not found' })
-  async createNewTransaction(@Body() transactionDto: CreateTransactionDto) {
-    return await this.transactionService.createNewTransaction(transactionDto);
+  async createTransaction(@Body() dto: CreateTransactionDto) {
+    return await this.transactionService.createTransaction(dto);
   }
 
   @Patch('/:id')

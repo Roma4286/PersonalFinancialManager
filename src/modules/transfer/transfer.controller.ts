@@ -58,8 +58,8 @@ export class TransferController {
   })
   @ApiResponse({ status: 400, description: 'Bad Request.' })
   @ApiResponse({ status: 404, description: 'Wallet not found' })
-  async createNewTransfer(@Body() transferDto: CreateTransferDto) {
-    return await this.transferService.createNewTransfer(transferDto);
+  async createTransfer(@Body() dto: CreateTransferDto) {
+    return await this.transferService.createTransfer(dto);
   }
 
   @Patch('/:transferGroupId')
@@ -79,7 +79,7 @@ export class TransferController {
     @Param() params: TransferGroupIdParamDto,
     @Body() dto: UpdateTransferDto,
   ) {
-    return await this.transferService.updateNewTransfer(
+    return await this.transferService.updateTransfer(
       params.transferGroupId,
       dto,
     );

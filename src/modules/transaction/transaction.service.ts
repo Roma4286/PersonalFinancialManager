@@ -76,7 +76,7 @@ export class TransactionService {
     return transaction;
   }
 
-  async createNewTransaction(dto: CreateTransactionDto): Promise<Transaction> {
+  async createTransaction(dto: CreateTransactionDto): Promise<Transaction> {
     return await withSerializableRetry(() =>
       this.prisma.$transaction(
         async (tx) => {
