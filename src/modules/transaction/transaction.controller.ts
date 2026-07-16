@@ -21,6 +21,8 @@ import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { IdParamDto } from '@/common/dto/id-param.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { TransactionFilterDto } from './dto/transaction-filter.dto';
+import { StatsFilterDto } from './dto/stats-filter.dto';
+import { StatsResponse } from '@/modules/wallet/dto/wallet-response.dto';
 
 @Controller('/transactions')
 export class TransactionController {
@@ -39,6 +41,19 @@ export class TransactionController {
   })
   async getTransactions(@Query() query: TransactionFilterDto) {
     return await this.transactionService.getTransactions(query);
+  }
+
+  @Get('/stats')
+  @SerializeOptions({ type: StatsResponse, excludeExtraneousValues: true })
+  @ApiResponse({
+    status: 200,
+    description: 'Retrieve category breakdown for a wallet.',
+    type: StatsResponse,
+    isArray: true,
+  })
+  @ApiResponse({ status: 404, description: 'Wallet not found.' })
+  async getStats(@Query() query: StatsFilterDto) {
+    return await this.transactionService.getStats(query);
   }
 
   @Get('/:id')

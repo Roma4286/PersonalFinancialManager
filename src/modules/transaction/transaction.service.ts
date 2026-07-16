@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Transaction, TransactionType } from '@prisma/client';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { TransactionFilterDto } from './dto/transaction-filter.dto';
+import { StatsFilterDto } from './dto/stats-filter.dto';
 import { WalletService } from '../wallet/wallet.service';
 import { CategoryService } from '../category/category.service';
 import { withSerializableRetry } from '@/common/utils/with-serializable-retry';
@@ -178,6 +179,46 @@ export class TransactionService {
         },
       ),
     );
+  }
+
+  async getStats(query: StatsFilterDto) {
+    await this.walletService.checkWallet(query.walletId);
+
+    const grouped = await this.prisma.transaction.groupBy({
+      by: ['categoryId'],
+      where: {
+        walletId: query.walletId,
+        transferGroupId: null,
+        ...((query.from || query.to) && {
+          date: {
+            ...(query.from && { gte: new Date(query.from) }),
+            ...(query.to && {
+              lte: new Date(
+                new Date(query.to).getTime() + 24 * 60 * 60 * 1000,
+              ),
+            }),
+          },
+        }),
+      },
+      _sum: { amountInCents: true },
+    });
+
+    const categories = await this.prisma.category.findMany({
+      where: { id: { in: grouped.map((group) => group.categoryId) } },
+    });
+    const categoryById = new Map(
+      categories.map((category) => [category.id, category]),
+    );
+
+    return grouped.map((group) => {
+      const category = categoryById.get(group.categoryId)!;
+
+      return {
+        name: category.name,
+        type: category.type,
+        totalAmountInCents: String(Math.abs(group._sum.amountInCents ?? 0)),
+      };
+    });
   }
 
   async deleteTransaction(transactionId: string): Promise<Transaction> {

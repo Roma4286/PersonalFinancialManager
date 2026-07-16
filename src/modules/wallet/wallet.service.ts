@@ -1,7 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma, Wallet } from '@prisma/client';
-import { DateRangeDto } from '@/common/dto/date-range.dto';
 import { KyselyService } from '../kysely/kysely.service';
 import { Kysely } from 'kysely';
 import { DB } from '@/db/types';
@@ -88,43 +87,5 @@ export class WalletService {
       }))
       .where('id', '=', walletId)
       .execute();
-  }
-
-  async getStats(walletId: string, query: DateRangeDto) {
-    await this.checkWallet(walletId);
-
-    let queryBuilder = this.kysely
-      .selectFrom('Transaction')
-      .innerJoin('Category', 'Category.id', 'Transaction.categoryId')
-      .select([
-        'Category.name',
-        (eb) =>
-          eb
-            .fn<string>('abs', [eb.fn.sum('amountInCents')])
-            .as('totalAmountInCents'),
-        'Category.type',
-      ])
-      .where('Transaction.walletId', '=', walletId)
-      .where('Transaction.transferGroupId', 'is', null)
-      .groupBy(['Transaction.categoryId', 'Category.name', 'Category.type']);
-
-    if (query.from) {
-      queryBuilder = queryBuilder.where('date', '>=', new Date(query.from));
-    }
-
-    if (query.to) {
-      queryBuilder = queryBuilder.where(
-        'date',
-        '<=',
-        new Date(new Date(query.to).getTime() + 24 * 60 * 60 * 1000),
-      );
-    }
-
-    const result = await queryBuilder.execute();
-
-    return result.map((categoryTotal) => ({
-      ...categoryTotal,
-      totalAmountInCents: String(categoryTotal.totalAmountInCents),
-    }));
   }
 }

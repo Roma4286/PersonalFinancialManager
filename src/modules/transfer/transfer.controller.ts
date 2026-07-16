@@ -17,7 +17,7 @@ import { TransferGroupIdParamDto } from './dto/transfer-group-id-param.dto';
 import { UpdateTransferDto } from './dto/update-transfer.dto';
 import { TransferResponse } from './dto/transfer-response.dto';
 
-@Controller('/transactions/transfers')
+@Controller('/transfers')
 export class TransferController {
   constructor(private transferService: TransferService) {}
 
