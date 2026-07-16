@@ -21,6 +21,7 @@ interface TransferLegInput {
   amountInCents: number;
   description?: string;
   date?: Date;
+  updatedAt: Date;
 }
 
 @Injectable()
@@ -55,7 +56,7 @@ export class TransferService {
       .insertInto('Transaction')
       .values({
         id: createId(),
-        updatedAt: new Date(),
+        updatedAt: leg.updatedAt,
         categoryId: leg.categoryId,
         walletId: leg.walletId,
         description: leg.description,
@@ -158,6 +159,8 @@ export class TransferService {
         .transaction()
         .setIsolationLevel('serializable')
         .execute(async (tx) => {
+          const now = new Date();
+
           await this.walletService.checkWalletKysely(
             [dto.fromWalletId, dto.toWalletId],
             tx,
@@ -167,6 +170,7 @@ export class TransferService {
             dto.fromWalletId,
             -dto.amountInCents,
             tx,
+            now,
           );
 
           await this.insertTransferLeg(tx, {
@@ -176,12 +180,14 @@ export class TransferService {
             amountInCents: -dto.amountInCents,
             description: dto.description,
             date,
+            updatedAt: now,
           });
 
           await this.walletService.updateBalanceKysely(
             dto.toWalletId,
             dto.amountInCents,
             tx,
+            now,
           );
 
           await this.insertTransferLeg(tx, {
@@ -191,6 +197,7 @@ export class TransferService {
             amountInCents: dto.amountInCents,
             description: dto.description,
             date,
+            updatedAt: now,
           });
 
           return await tx
@@ -210,6 +217,7 @@ export class TransferService {
         .transaction()
         .setIsolationLevel('serializable')
         .execute(async (tx) => {
+          const now = new Date();
           const legs = await this.loadTransferLegs(tx, transferGroupId);
 
           const expenseLeg = legs.find(
@@ -235,23 +243,25 @@ export class TransferService {
               expenseLeg.walletId,
               -delta,
               tx,
+              now,
             );
 
             await this.walletService.updateBalanceKysely(
               incomeLeg.walletId,
               delta,
               tx,
+              now,
             );
 
             await tx
               .updateTable('Transaction')
-              .set({ amountInCents: -dto.amountInCents, updatedAt: new Date() })
+              .set({ amountInCents: -dto.amountInCents, updatedAt: now })
               .where('id', '=', expenseLeg.id)
               .execute();
 
             await tx
               .updateTable('Transaction')
-              .set({ amountInCents: dto.amountInCents, updatedAt: new Date() })
+              .set({ amountInCents: dto.amountInCents, updatedAt: now })
               .where('id', '=', incomeLeg.id)
               .execute();
           }
@@ -268,7 +278,7 @@ export class TransferService {
           if (Object.keys(commonUpdateData).length > 0) {
             await tx
               .updateTable('Transaction')
-              .set({ ...commonUpdateData, updatedAt: new Date() })
+              .set({ ...commonUpdateData, updatedAt: now })
               .where('transferGroupId', '=', transferGroupId)
               .execute();
           }
@@ -290,6 +300,7 @@ export class TransferService {
         .transaction()
         .setIsolationLevel('serializable')
         .execute(async (tx) => {
+          const now = new Date();
           const legs = await this.loadTransferLegs(tx, transferGroupId);
 
           for (const leg of legs) {
@@ -299,6 +310,7 @@ export class TransferService {
               leg.walletId,
               reversalDelta,
               tx,
+              now,
             );
           }
 

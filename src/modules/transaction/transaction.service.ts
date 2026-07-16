@@ -17,6 +17,7 @@ import { withSerializableRetry } from '@/common/utils/with-serializable-retry';
 export class TransactionService {
   private readonly DEFAULT_PAGE_SIZE = 100;
   private readonly MAX_PAGE_SIZE = 1000;
+  private readonly ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
   constructor(
     private prisma: PrismaService,
     private walletService: WalletService,
@@ -50,7 +51,7 @@ export class TransactionService {
           date: {
             ...(query.from && { gte: new Date(query.from) }),
             ...(query.to && {
-              lte: new Date(new Date(query.to).getTime() + 24 * 60 * 60 * 1000),
+              lte: new Date(new Date(query.to).getTime() + this.ONE_DAY_IN_MS),
             }),
           },
         }),
@@ -194,7 +195,7 @@ export class TransactionService {
             ...(query.from && { gte: new Date(query.from) }),
             ...(query.to && {
               lte: new Date(
-                new Date(query.to).getTime() + 24 * 60 * 60 * 1000,
+                new Date(query.to).getTime() + this.ONE_DAY_IN_MS,
               ),
             }),
           },

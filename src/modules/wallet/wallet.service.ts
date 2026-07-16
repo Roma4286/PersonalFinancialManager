@@ -78,12 +78,13 @@ export class WalletService {
     walletId: string,
     deltaInCents: number,
     tx: Kysely<DB> = this.kysely,
+    updatedAt: Date = new Date(),
   ): Promise<void> {
     await tx
       .updateTable('Wallet')
       .set((eb) => ({
         balanceInCents: eb('balanceInCents', '+', deltaInCents),
-        updatedAt: new Date(),
+        updatedAt,
       }))
       .where('id', '=', walletId)
       .execute();
