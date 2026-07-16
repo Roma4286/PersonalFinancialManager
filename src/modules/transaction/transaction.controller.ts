@@ -22,7 +22,7 @@ import { IdParamDto } from '@/common/dto/id-param.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { TransactionFilterDto } from './dto/transaction-filter.dto';
 import { StatsFilterDto } from './dto/stats-filter.dto';
-import { StatsResponse } from '@/modules/wallet/dto/wallet-response.dto';
+import { StatsResponse } from './dto/transaction-response.dto';
 
 @Controller('/transactions')
 export class TransactionController {

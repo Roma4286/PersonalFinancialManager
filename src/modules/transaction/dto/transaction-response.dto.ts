@@ -1,6 +1,8 @@
 import { CategoryResponse } from '@/modules/category/dto/category-response.dto';
 import { BaseEntityResponse } from '@/common/dto/base-entity-response.dto';
 import { Expose, Type } from 'class-transformer';
+import { ApiProperty } from '@nestjs/swagger';
+import { TransactionType } from '@prisma/client';
 
 export class TransactionResponse extends BaseEntityResponse {
   @Expose() readonly amountInCents!: number;
@@ -15,4 +17,13 @@ export class TransactionWithCategoryResponse extends TransactionResponse {
   @Expose()
   @Type(() => CategoryResponse)
   readonly category!: CategoryResponse;
+}
+
+export class StatsResponse {
+  @ApiProperty({ enum: TransactionType, enumName: 'TransactionType' })
+  @Expose()
+  readonly type!: TransactionType;
+
+  @Expose() readonly name!: string;
+  @Expose() readonly totalAmountInCents!: number;
 }

@@ -217,7 +217,7 @@ export class TransactionService {
       return {
         name: category.name,
         type: category.type,
-        totalAmountInCents: String(Math.abs(group._sum.amountInCents ?? 0)),
+        totalAmountInCents: Math.abs(group._sum.amountInCents ?? 0),
       };
     });
   }

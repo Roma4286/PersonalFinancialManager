@@ -11,12 +11,3 @@ export class WalletResponse extends BaseEntityResponse {
 export class BalanceResponse {
   @Expose() readonly totalBalanceInCents!: number;
 }
-
-export class StatsResponse {
-  @ApiProperty({ enum: TransactionType, enumName: 'TransactionType' })
-  @Expose()
-  readonly type!: TransactionType;
-
-  @Expose() readonly name!: string;
-  @Expose() readonly totalAmountInCents!: string;
-}
