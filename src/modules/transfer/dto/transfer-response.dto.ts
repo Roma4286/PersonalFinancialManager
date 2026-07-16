@@ -10,3 +10,12 @@ export class TransferResponse {
   @Type(() => TransactionResponse)
   readonly transactions!: TransactionResponse[];
 }
+
+export class AllTransferRespons {
+  @Expose() readonly transferGroupId!: string;
+  @Expose() readonly fromWalletId!: string;
+  @Expose() readonly fromWalletName!: string;
+  @Expose() readonly toWalletId!: string;
+  @Expose() readonly toWalletName!: string;
+  @Expose() readonly amountInCents!: number;
+}

@@ -66,6 +66,60 @@ export class TransferService {
       .execute();
   }
 
+  async getAllTransfers() {
+    const legs = await this.kysely
+      .selectFrom('Transaction')
+      .innerJoin('Category', 'Category.id', 'Transaction.categoryId')
+      .innerJoin('Wallet', 'Wallet.id', 'Transaction.walletId')
+      .select([
+        'Transaction.transferGroupId',
+        'Transaction.walletId',
+        'Wallet.name as walletName',
+        'Category.type',
+        'Transaction.amountInCents'
+      ])
+      .where('Transaction.transferGroupId', 'is not', null)
+      .execute();
+
+    const transfersByGroupId = new Map<
+      string,
+      {
+        fromWalletId?: string;
+        fromWalletName?: string;
+        toWalletId?: string;
+        toWalletName?: string;
+        amountInCents?: number;
+      }
+    >();
+
+    for (const leg of legs) {
+      const transferGroupId = leg.transferGroupId!;
+      const entry = transfersByGroupId.get(transferGroupId) ?? {};
+
+      if (leg.type === TransactionType.EXPENSE) {
+        entry.fromWalletId = leg.walletId;
+        entry.fromWalletName = leg.walletName;
+      } else {
+        entry.toWalletId = leg.walletId;
+        entry.toWalletName = leg.walletName;
+        entry.amountInCents = leg.amountInCents;
+      }
+
+      transfersByGroupId.set(transferGroupId, entry);
+    }
+
+    return Array.from(transfersByGroupId.entries()).map(
+      ([transferGroupId, sides]) => ({
+        transferGroupId,
+        fromWalletId: sides.fromWalletId!,
+        fromWalletName: sides.fromWalletName!,
+        toWalletId: sides.toWalletId!,
+        toWalletName: sides.toWalletName!,
+        amountInCents: sides.amountInCents!,
+      }),
+    );
+  }
+
   async getTransfer(transferGroupId: string) {
     const transactions = await this.kysely
       .selectFrom('Transaction')

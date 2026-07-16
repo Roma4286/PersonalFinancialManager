@@ -15,11 +15,26 @@ import { ApiResponse } from '@nestjs/swagger';
 import { CreateTransferDto } from './dto/create-transfer.dto';
 import { TransferGroupIdParamDto } from './dto/transfer-group-id-param.dto';
 import { UpdateTransferDto } from './dto/update-transfer.dto';
-import { TransferResponse } from './dto/transfer-response.dto';
+import {
+  AllTransferRespons,
+  TransferResponse,
+} from './dto/transfer-response.dto';
 
 @Controller('/transfers')
 export class TransferController {
   constructor(private transferService: TransferService) {}
+
+  @Get('/')
+  @SerializeOptions({ type: AllTransferRespons, excludeExtraneousValues: true })
+  @ApiResponse({
+    status: 200,
+    description: 'Retrive all transfers',
+    type: AllTransferRespons,
+    isArray: true
+  })
+  async getAllTransfers() {
+    return await this.transferService.getAllTransfers();
+  }
 
   @Get('/:transferGroupId')
   @SerializeOptions({ type: TransferResponse, excludeExtraneousValues: true })
