@@ -15,8 +15,8 @@ export class CategoryService {
     return await this.prisma.category.findMany();
   }
 
-  isNotReserved(categoryId: string): boolean {
-    return !this.RESERVED_CATEGORY_IDS.includes(categoryId);
+  isReserved(categoryId: string): boolean {
+    return this.RESERVED_CATEGORY_IDS.includes(categoryId);
   }
 
   async findCategoryOrThrow(
