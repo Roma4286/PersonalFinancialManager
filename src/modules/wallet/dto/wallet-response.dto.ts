@@ -1,5 +1,3 @@
-import { TransactionType } from '@prisma/client';
-import { ApiProperty } from '@nestjs/swagger';
 import { Expose } from 'class-transformer';
 import { BaseEntityResponse } from '@/common/dto/base-entity-response.dto';
 

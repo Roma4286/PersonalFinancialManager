@@ -30,7 +30,7 @@ export class TransferController {
     status: 200,
     description: 'Retrive all transfers',
     type: AllTransferRespons,
-    isArray: true
+    isArray: true,
   })
   async getAllTransfers() {
     return await this.transferService.getAllTransfers();

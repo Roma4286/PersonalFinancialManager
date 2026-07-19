@@ -194,9 +194,7 @@ export class TransactionService {
           date: {
             ...(query.from && { gte: new Date(query.from) }),
             ...(query.to && {
-              lte: new Date(
-                new Date(query.to).getTime() + this.ONE_DAY_IN_MS,
-              ),
+              lte: new Date(new Date(query.to).getTime() + this.ONE_DAY_IN_MS),
             }),
           },
         }),

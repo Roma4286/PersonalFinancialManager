@@ -1,7 +1,6 @@
 import { IsCuid } from '@/common/decorators/is-cuid.decorator';
 import { IsAmountInCents } from '@/common/decorators/is-amount-in-cents.decorator';
-import { IsDescription } from '@/common/decorators/is-description.decorator';
-import { IsDateString, IsOptional } from 'class-validator';
+import { IsDateString, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CreateTransferDto {
   @IsCuid()
@@ -17,6 +16,8 @@ export class CreateTransferDto {
   @IsDateString({ strict: true })
   readonly date?: string;
 
-  @IsDescription()
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
   readonly description?: string;
 }

@@ -77,7 +77,7 @@ export class TransferService {
         'Transaction.walletId',
         'Wallet.name as walletName',
         'Category.type',
-        'Transaction.amountInCents'
+        'Transaction.amountInCents',
       ])
       .where('Transaction.transferGroupId', 'is not', null)
       .execute();
