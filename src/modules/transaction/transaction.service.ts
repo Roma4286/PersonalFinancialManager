@@ -11,7 +11,6 @@ import { TransactionFilterDto } from './dto/transaction-filter.dto';
 import { StatsFilterDto } from './dto/stats-filter.dto';
 import { WalletService } from '../wallet/wallet.service';
 import { CategoryService } from '../category/category.service';
-import { withSerializableRetry } from '@/common/utils/with-serializable-retry';
 
 @Injectable()
 export class TransactionService {
@@ -77,108 +76,107 @@ export class TransactionService {
   }
 
   async createTransaction(dto: CreateTransactionDto): Promise<Transaction> {
-    return await withSerializableRetry(() =>
-      this.prisma.$transaction(
-        async (tx) => {
-          await this.walletService.checkWallet(dto.walletId, tx);
+    return await this.prisma.$transaction(
+      async (tx) => {
+        await this.walletService.checkWallet(dto.walletId, tx);
 
-          if (!this.categoryService.isReserved(dto.categoryId)) {
-            throw new BadRequestException('categoryId must be a valid id');
-          }
+        if (!this.categoryService.isReserved(dto.categoryId)) {
+          throw new BadRequestException('categoryId must be a valid id');
+        }
 
-          const category = await this.categoryService.findCategoryOrThrow(
-            dto.categoryId,
-            tx,
-          );
+        const category = await this.categoryService.findCategoryOrThrow(
+          dto.categoryId,
+          tx,
+        );
 
-          const signedAmountInCents = this.signAmount(
-            category.type,
-            dto.amountInCents,
-          );
+        const signedAmountInCents = this.signAmount(
+          category.type,
+          dto.amountInCents,
+        );
 
-          await this.walletService.updateBalance(
-            dto.walletId,
-            signedAmountInCents,
-            tx,
-          );
+        await this.walletService.updateBalance(
+          dto.walletId,
+          signedAmountInCents,
+          tx,
+        );
 
-          return await tx.transaction.create({
-            data: {
-              amountInCents: signedAmountInCents,
-              description: dto.description,
-              ...(dto.date && { date: new Date(dto.date) }),
-              walletId: dto.walletId,
-              categoryId: dto.categoryId,
-            },
-          });
-        },
-        { isolationLevel: 'Serializable' },
-      ),
+        return await tx.transaction.create({
+          data: {
+            amountInCents: signedAmountInCents,
+            description: dto.description,
+            ...(dto.date && { date: new Date(dto.date) }),
+            walletId: dto.walletId,
+            categoryId: dto.categoryId,
+          },
+        });
+      },
+      { isolationLevel: 'Serializable' },
     );
   }
 
-  async updateTransaction(transactionId: string, dto: UpdateTransactionDto) {
-    return await withSerializableRetry(() =>
-      this.prisma.$transaction(
-        async (tx) => {
-          const oldTransaction = await tx.transaction.findUnique({
-            where: { id: transactionId },
-          });
+  async updateTransaction(
+    transactionId: string,
+    dto: UpdateTransactionDto,
+  ): Promise<Transaction> {
+    return await this.prisma.$transaction(
+      async (tx) => {
+        const oldTransaction = await tx.transaction.findUnique({
+          where: { id: transactionId },
+        });
 
-          if (!oldTransaction) {
-            throw new NotFoundException(
-              `The transaction with id ${transactionId} not found`,
-            );
-          }
-
-          if (oldTransaction.transferGroupId) {
-            throw new BadRequestException(
-              'Use the /transfer endpoints to modify transfer records',
-            );
-          }
-
-          const categoryId = dto.categoryId ?? oldTransaction.categoryId;
-
-          if (!this.categoryService.isReserved(categoryId)) {
-            throw new BadRequestException('categoryId must be a valid id');
-          }
-
-          const category = await this.categoryService.findCategoryOrThrow(
-            categoryId,
-            tx,
+        if (!oldTransaction) {
+          throw new NotFoundException(
+            `The transaction with id ${transactionId} not found`,
           );
+        }
 
-          const rawAmountInCents =
-            dto.amountInCents ?? Math.abs(oldTransaction.amountInCents);
-
-          const newSignedAmountInCents = this.signAmount(
-            category.type,
-            rawAmountInCents,
+        if (oldTransaction.transferGroupId) {
+          throw new BadRequestException(
+            'Use the /transfer endpoints to modify transfer records',
           );
+        }
 
-          const balanceDelta =
-            newSignedAmountInCents - oldTransaction.amountInCents;
+        const categoryId = dto.categoryId ?? oldTransaction.categoryId;
 
-          await this.walletService.updateBalance(
-            oldTransaction.walletId,
-            balanceDelta,
-            tx,
-          );
+        if (!this.categoryService.isReserved(categoryId)) {
+          throw new BadRequestException('categoryId must be a valid id');
+        }
 
-          return await tx.transaction.update({
-            where: { id: transactionId },
-            data: {
-              amountInCents: newSignedAmountInCents,
-              description: dto.description,
-              date: dto.date ? new Date(dto.date) : undefined,
-              categoryId: dto.categoryId,
-            },
-          });
-        },
-        {
-          isolationLevel: 'Serializable',
-        },
-      ),
+        const category = await this.categoryService.findCategoryOrThrow(
+          categoryId,
+          tx,
+        );
+
+        const rawAmountInCents =
+          dto.amountInCents ?? Math.abs(oldTransaction.amountInCents);
+
+        const newSignedAmountInCents = this.signAmount(
+          category.type,
+          rawAmountInCents,
+        );
+
+        const balanceDelta =
+          newSignedAmountInCents - oldTransaction.amountInCents;
+
+        await this.walletService.updateBalance(
+          oldTransaction.walletId,
+          balanceDelta,
+          tx,
+        );
+
+        return await tx.transaction.update({
+          where: { id: transactionId },
+          data: {
+            amountInCents: newSignedAmountInCents,
+            description: dto.description,
+            date: dto.date ? new Date(dto.date) : undefined,
+            categoryId: dto.categoryId,
+          },
+        });
+      },
+      {
+        isolationLevel: 'Serializable',
+      },
     );
   }
 
@@ -221,37 +219,35 @@ export class TransactionService {
   }
 
   async deleteTransaction(transactionId: string): Promise<Transaction> {
-    return await withSerializableRetry(() =>
-      this.prisma.$transaction(
-        async (tx) => {
-          const transaction = await tx.transaction.findUnique({
-            where: { id: transactionId },
-          });
+    return await this.prisma.$transaction(
+      async (tx) => {
+        const transaction = await tx.transaction.findUnique({
+          where: { id: transactionId },
+        });
 
-          if (!transaction) {
-            throw new NotFoundException(
-              `The transaction with id ${transactionId} not found`,
-            );
-          }
-
-          if (transaction.transferGroupId) {
-            throw new BadRequestException(
-              'Use the /transfer endpoints to modify transfer records',
-            );
-          }
-
-          await this.walletService.updateBalance(
-            transaction.walletId,
-            -transaction.amountInCents,
-            tx,
+        if (!transaction) {
+          throw new NotFoundException(
+            `The transaction with id ${transactionId} not found`,
           );
+        }
 
-          return await tx.transaction.delete({
-            where: { id: transaction.id },
-          });
-        },
-        { isolationLevel: 'Serializable' },
-      ),
+        if (transaction.transferGroupId) {
+          throw new BadRequestException(
+            'Use the /transfer endpoints to modify transfer records',
+          );
+        }
+
+        await this.walletService.updateBalance(
+          transaction.walletId,
+          -transaction.amountInCents,
+          tx,
+        );
+
+        return await tx.transaction.delete({
+          where: { id: transaction.id },
+        });
+      },
+      { isolationLevel: 'Serializable' },
     );
   }
 }

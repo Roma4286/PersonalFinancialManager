@@ -28,7 +28,7 @@ export class TransferController {
   @SerializeOptions({ type: AllTransferRespons, excludeExtraneousValues: true })
   @ApiResponse({
     status: 200,
-    description: 'Retrive all transfers',
+    description: 'Retrieve all transfers',
     type: AllTransferRespons,
     isArray: true,
   })
