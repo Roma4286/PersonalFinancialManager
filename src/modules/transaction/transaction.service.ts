@@ -92,7 +92,7 @@ export class TransactionService {
       .execute(async (tx) => {
         await this.walletService.findWalletOrThrow(dto.walletId, tx);
 
-        if (!this.categoryService.isReserved(dto.categoryId)) {
+        if (this.categoryService.isReserved(dto.categoryId)) {
           throw new BadRequestException('categoryId must be a valid id');
         }
 
@@ -159,7 +159,7 @@ export class TransactionService {
 
         const categoryId = dto.categoryId ?? oldTransaction.categoryId;
 
-        if (!this.categoryService.isReserved(categoryId)) {
+        if (this.categoryService.isReserved(categoryId)) {
           throw new BadRequestException('categoryId must be a valid id');
         }
 
