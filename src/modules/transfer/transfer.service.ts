@@ -159,12 +159,12 @@ export class TransferService {
       .execute(async (tx) => {
         const now = new Date();
 
-        await this.walletService.checkWalletKysely(
-          [dto.fromWalletId, dto.toWalletId],
-          tx,
-        );
+        await Promise.all([
+          this.walletService.findWalletOrThrow(dto.fromWalletId, tx),
+          this.walletService.findWalletOrThrow(dto.toWalletId, tx),
+        ]);
 
-        await this.walletService.updateBalanceKysely(
+        await this.walletService.updateBalance(
           dto.fromWalletId,
           -dto.amountInCents,
           tx,
@@ -181,7 +181,7 @@ export class TransferService {
           updatedAt: now,
         });
 
-        await this.walletService.updateBalanceKysely(
+        await this.walletService.updateBalance(
           dto.toWalletId,
           dto.amountInCents,
           tx,
@@ -235,14 +235,14 @@ export class TransferService {
         ) {
           const delta = dto.amountInCents - incomeLeg.amountInCents;
 
-          await this.walletService.updateBalanceKysely(
+          await this.walletService.updateBalance(
             expenseLeg.walletId,
             -delta,
             tx,
             now,
           );
 
-          await this.walletService.updateBalanceKysely(
+          await this.walletService.updateBalance(
             incomeLeg.walletId,
             delta,
             tx,
@@ -300,7 +300,7 @@ export class TransferService {
         for (const leg of legs) {
           const reversalDelta = -leg.amountInCents;
 
-          await this.walletService.updateBalanceKysely(
+          await this.walletService.updateBalance(
             leg.walletId,
             reversalDelta,
             tx,

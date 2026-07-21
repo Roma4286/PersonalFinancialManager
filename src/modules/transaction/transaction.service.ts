@@ -4,13 +4,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
-import { PrismaService } from '../prisma/prisma.service';
-import { Transaction, TransactionType } from '@prisma/client';
+import { Category, Transaction, TransactionType } from '@prisma/client';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { TransactionFilterDto } from './dto/transaction-filter.dto';
 import { StatsFilterDto } from './dto/stats-filter.dto';
 import { WalletService } from '../wallet/wallet.service';
 import { CategoryService } from '../category/category.service';
+import { KyselyService } from '../kysely/kysely.service';
+import { createId } from '@paralleldrive/cuid2';
 
 @Injectable()
 export class TransactionService {
@@ -18,7 +19,7 @@ export class TransactionService {
   private readonly MAX_PAGE_SIZE = 1000;
   private readonly ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
   constructor(
-    private prisma: PrismaService,
+    private kysely: KyselyService,
     private walletService: WalletService,
     private categoryService: CategoryService,
   ) {}
@@ -34,37 +35,42 @@ export class TransactionService {
       this.MAX_PAGE_SIZE,
     );
 
-    return await this.prisma.transaction.findMany({
-      orderBy: [{ date: 'desc' }, { id: 'desc' }],
-      where: {
-        ...(query.categoryId && { categoryId: query.categoryId }),
-        ...(query.walletId && { walletId: query.walletId }),
-        ...(query.type && {
-          category: {
-            is: {
-              type: query.type,
-            },
-          },
-        }),
-        ...((query.from || query.to) && {
-          date: {
-            ...(query.from && { gte: new Date(query.from) }),
-            ...(query.to && {
-              lte: new Date(new Date(query.to).getTime() + this.ONE_DAY_IN_MS),
-            }),
-          },
-        }),
-      },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    });
+    return await this.kysely
+      .selectFrom('Transaction')
+      .innerJoin('Category', 'Category.id', 'Transaction.categoryId')
+      .selectAll('Transaction')
+      .$if(!!query.categoryId, (qb) =>
+        qb.where('Transaction.categoryId', '=', query.categoryId!),
+      )
+      .$if(!!query.walletId, (qb) =>
+        qb.where('Transaction.walletId', '=', query.walletId!),
+      )
+      .$if(!!query.type, (qb) => qb.where('Category.type', '=', query.type!))
+      .$if(!!query.from, (qb) =>
+        qb.where('Transaction.date', '>=', new Date(query.from!)),
+      )
+      .$if(!!query.to, (qb) =>
+        qb.where(
+          'Transaction.date',
+          '<=',
+          new Date(new Date(query.to!).getTime() + this.ONE_DAY_IN_MS),
+        ),
+      )
+      .orderBy('Transaction.date', 'desc')
+      .orderBy('Transaction.id', 'desc')
+      .limit(pageSize)
+      .offset((page - 1) * pageSize)
+      .execute();
   }
 
-  async getTransactionById(transactionId: string): Promise<Transaction> {
-    const transaction = await this.prisma.transaction.findUnique({
-      where: { id: transactionId },
-      include: { category: true },
-    });
+  async getTransactionById(
+    transactionId: string,
+  ): Promise<Transaction & { category: Category }> {
+    const transaction = await this.kysely
+      .selectFrom('Transaction')
+      .selectAll()
+      .where('id', '=', transactionId)
+      .executeTakeFirst();
 
     if (!transaction) {
       throw new NotFoundException(
@@ -72,13 +78,19 @@ export class TransactionService {
       );
     }
 
-    return transaction;
+    const category = await this.categoryService.findCategoryOrThrow(
+      transaction.categoryId,
+    );
+
+    return { ...transaction, category };
   }
 
   async createTransaction(dto: CreateTransactionDto): Promise<Transaction> {
-    return await this.prisma.$transaction(
-      async (tx) => {
-        await this.walletService.checkWallet(dto.walletId, tx);
+    return await this.kysely
+      .transaction()
+      .setIsolationLevel('serializable')
+      .execute(async (tx) => {
+        await this.walletService.findWalletOrThrow(dto.walletId, tx);
 
         if (!this.categoryService.isReserved(dto.categoryId)) {
           throw new BadRequestException('categoryId must be a valid id');
@@ -94,35 +106,44 @@ export class TransactionService {
           dto.amountInCents,
         );
 
+        const now = new Date();
+
         await this.walletService.updateBalance(
           dto.walletId,
           signedAmountInCents,
           tx,
+          now,
         );
 
-        return await tx.transaction.create({
-          data: {
+        return await tx
+          .insertInto('Transaction')
+          .values({
+            id: createId(),
             amountInCents: signedAmountInCents,
             description: dto.description,
             ...(dto.date && { date: new Date(dto.date) }),
             walletId: dto.walletId,
             categoryId: dto.categoryId,
-          },
-        });
-      },
-      { isolationLevel: 'Serializable' },
-    );
+            updatedAt: now,
+          })
+          .returningAll()
+          .executeTakeFirstOrThrow();
+      });
   }
 
   async updateTransaction(
     transactionId: string,
     dto: UpdateTransactionDto,
   ): Promise<Transaction> {
-    return await this.prisma.$transaction(
-      async (tx) => {
-        const oldTransaction = await tx.transaction.findUnique({
-          where: { id: transactionId },
-        });
+    return await this.kysely
+      .transaction()
+      .setIsolationLevel('serializable')
+      .execute(async (tx) => {
+        const oldTransaction = await tx
+          .selectFrom('Transaction')
+          .selectAll()
+          .where('id', '=', transactionId)
+          .executeTakeFirst();
 
         if (!oldTransaction) {
           throw new NotFoundException(
@@ -158,51 +179,66 @@ export class TransactionService {
         const balanceDelta =
           newSignedAmountInCents - oldTransaction.amountInCents;
 
+        const now = new Date();
+
         await this.walletService.updateBalance(
           oldTransaction.walletId,
           balanceDelta,
           tx,
+          now,
         );
 
-        return await tx.transaction.update({
-          where: { id: transactionId },
-          data: {
+        return await tx
+          .updateTable('Transaction')
+          .set({
             amountInCents: newSignedAmountInCents,
-            description: dto.description,
-            date: dto.date ? new Date(dto.date) : undefined,
-            categoryId: dto.categoryId,
-          },
-        });
-      },
-      {
-        isolationLevel: 'Serializable',
-      },
-    );
+            updatedAt: now,
+            ...(dto.description !== undefined && {
+              description: dto.description,
+            }),
+            ...(dto.date !== undefined && { date: new Date(dto.date) }),
+            ...(dto.categoryId !== undefined && {
+              categoryId: dto.categoryId,
+            }),
+          })
+          .where('id', '=', transactionId)
+          .returningAll()
+          .executeTakeFirstOrThrow();
+      });
   }
 
   async getStats(query: StatsFilterDto) {
-    await this.walletService.checkWallet(query.walletId);
+    await this.walletService.findWalletOrThrow(query.walletId);
 
-    const grouped = await this.prisma.transaction.groupBy({
-      by: ['categoryId'],
-      where: {
-        walletId: query.walletId,
-        transferGroupId: null,
-        ...((query.from || query.to) && {
-          date: {
-            ...(query.from && { gte: new Date(query.from) }),
-            ...(query.to && {
-              lte: new Date(new Date(query.to).getTime() + this.ONE_DAY_IN_MS),
-            }),
-          },
-        }),
-      },
-      _sum: { amountInCents: true },
-    });
+    const grouped = await this.kysely
+      .selectFrom('Transaction')
+      .select([
+        'categoryId',
+        (eb) => eb.fn.sum<string>('amountInCents').as('totalAmountInCents'),
+      ])
+      .where('walletId', '=', query.walletId)
+      .where('transferGroupId', 'is', null)
+      .$if(!!query.from, (qb) => qb.where('date', '>=', new Date(query.from!)))
+      .$if(!!query.to, (qb) =>
+        qb.where(
+          'date',
+          '<=',
+          new Date(new Date(query.to!).getTime() + this.ONE_DAY_IN_MS),
+        ),
+      )
+      .groupBy('categoryId')
+      .execute();
 
-    const categories = await this.prisma.category.findMany({
-      where: { id: { in: grouped.map((group) => group.categoryId) } },
-    });
+    const categories = await this.kysely
+      .selectFrom('Category')
+      .selectAll()
+      .where(
+        'id',
+        'in',
+        grouped.map((group) => group.categoryId),
+      )
+      .execute();
+
     const categoryById = new Map(
       categories.map((category) => [category.id, category]),
     );
@@ -213,17 +249,21 @@ export class TransactionService {
       return {
         name: category.name,
         type: category.type,
-        totalAmountInCents: Math.abs(group._sum.amountInCents ?? 0),
+        totalAmountInCents: Math.abs(Number(group.totalAmountInCents ?? 0)),
       };
     });
   }
 
   async deleteTransaction(transactionId: string): Promise<Transaction> {
-    return await this.prisma.$transaction(
-      async (tx) => {
-        const transaction = await tx.transaction.findUnique({
-          where: { id: transactionId },
-        });
+    return await this.kysely
+      .transaction()
+      .setIsolationLevel('serializable')
+      .execute(async (tx) => {
+        const transaction = await tx
+          .selectFrom('Transaction')
+          .selectAll()
+          .where('id', '=', transactionId)
+          .executeTakeFirst();
 
         if (!transaction) {
           throw new NotFoundException(
@@ -243,11 +283,11 @@ export class TransactionService {
           tx,
         );
 
-        return await tx.transaction.delete({
-          where: { id: transaction.id },
-        });
-      },
-      { isolationLevel: 'Serializable' },
-    );
+        return await tx
+          .deleteFrom('Transaction')
+          .where('id', '=', transaction.id)
+          .returningAll()
+          .executeTakeFirstOrThrow();
+      });
   }
 }

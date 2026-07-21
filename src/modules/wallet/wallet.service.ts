@@ -1,28 +1,23 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { Prisma, Wallet } from '@prisma/client';
+import { Wallet } from '@prisma/client';
 import { KyselyService } from '../kysely/kysely.service';
 import { Kysely } from 'kysely';
 import { DB } from '@/db/types';
 
 @Injectable()
 export class WalletService {
-  constructor(
-    private prisma: PrismaService,
-    private kysely: KyselyService,
-  ) {}
+  constructor(private kysely: KyselyService) {}
 
   async getAllWallets(): Promise<Wallet[]> {
-    return await this.prisma.wallet.findMany();
+    return await this.kysely.selectFrom('Wallet').selectAll().execute();
   }
 
   async getBalance(walletId: string): Promise<number> {
-    const wallet = await this.prisma.wallet.findUnique({
-      where: { id: walletId },
-      select: {
-        balanceInCents: true,
-      },
-    });
+    const wallet = await this.kysely
+      .selectFrom('Wallet')
+      .select(['balanceInCents'])
+      .where('id', '=', walletId)
+      .executeTakeFirst();
 
     if (!wallet) {
       throw new NotFoundException(`The wallet with id ${walletId} not found`);
@@ -31,11 +26,15 @@ export class WalletService {
     return wallet.balanceInCents;
   }
 
-  async checkWallet(
+  async findWalletOrThrow(
     walletId: string,
-    tx: Prisma.TransactionClient = this.prisma,
+    tx: Kysely<DB> = this.kysely,
   ): Promise<Wallet> {
-    const wallet = await tx.wallet.findUnique({ where: { id: walletId } });
+    const wallet = await tx
+      .selectFrom('Wallet')
+      .selectAll()
+      .where('id', '=', walletId)
+      .executeTakeFirst();
 
     if (!wallet) {
       throw new NotFoundException(`The wallet with id ${walletId} not found`);
@@ -45,36 +44,6 @@ export class WalletService {
   }
 
   async updateBalance(
-    walletId: string,
-    deltaInCents: number,
-    tx: Prisma.TransactionClient = this.prisma,
-  ): Promise<void> {
-    await tx.wallet.update({
-      where: { id: walletId },
-      data: { balanceInCents: { increment: deltaInCents } },
-    });
-  }
-
-  async checkWalletKysely(
-    walletIds: string[],
-    tx: Kysely<DB> = this.kysely,
-  ): Promise<void> {
-    const wallets = await tx
-      .selectFrom('Wallet')
-      .select(['id'])
-      .where('id', 'in', walletIds)
-      .execute();
-
-    const foundWalletIds = new Set(wallets.map((wallet) => wallet.id));
-
-    for (const walletId of walletIds) {
-      if (!foundWalletIds.has(walletId)) {
-        throw new NotFoundException(`The wallet with id ${walletId} not found`);
-      }
-    }
-  }
-
-  async updateBalanceKysely(
     walletId: string,
     deltaInCents: number,
     tx: Kysely<DB> = this.kysely,
