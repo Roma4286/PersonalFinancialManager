@@ -1,7 +1,7 @@
 import { Expose } from 'class-transformer';
-import { BaseEntityResponse } from '@/common/dto/base-entity-response.dto';
+import { BaseEntityWithTimestampsResponse  } from '@/common/dto/base-entity-response.dto';
 
-export class WalletResponse extends BaseEntityResponse {
+export class WalletResponse extends BaseEntityWithTimestampsResponse  {
   @Expose() readonly name!: string;
   @Expose() readonly balanceInCents!: number;
 }

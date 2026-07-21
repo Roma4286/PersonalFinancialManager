@@ -1,10 +1,10 @@
 import { CategoryResponse } from '@/modules/category/dto/category-response.dto';
-import { BaseEntityResponse } from '@/common/dto/base-entity-response.dto';
+import { BaseEntityWithTimestampsResponse  } from '@/common/dto/base-entity-response.dto';
 import { Expose, Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import { TransactionType } from '@prisma/client';
 
-export class TransactionResponse extends BaseEntityResponse {
+export class TransactionResponse extends BaseEntityWithTimestampsResponse  {
   @Expose() readonly amountInCents!: number;
   @Expose() readonly description!: string | null;
   @Expose() readonly date!: Date;
