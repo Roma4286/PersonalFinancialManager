@@ -13,7 +13,7 @@
     "db:migrate": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:generate": "prisma generate && npx prettier --write src/db/types.ts",
-    "setup": "npm run docker:start && npm run db:wait && npm run db:migrate && npm run db:seed && npm run db:generate",
+    "setup": "npm run db:migrate && npm run db:seed && npm run db:generate",
     "build": "npm run db:generate && nest build"
 
   },
