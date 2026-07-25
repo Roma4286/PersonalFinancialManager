@@ -7,8 +7,6 @@
     "format": "npx prettier --write src/**",
     "lint": "npx eslint . ",
     "lint:fix": "npx eslint . --fix",
-    "docker:start": "docker-compose up -d",
-    "docker:stop": "docker-compose down",
     "db:wait": "tsx prisma/wait-for-db.ts",
     "db:migrate": "prisma migrate deploy",
     "db:seed": "prisma db seed",
