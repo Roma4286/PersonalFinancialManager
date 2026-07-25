@@ -4,65 +4,73 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
-import { PrismaService } from '../prisma/prisma.service';
-import { Prisma, Transaction, TransactionType } from '@prisma/client';
+import { Category, Transaction, TransactionType } from '@prisma/client';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
-import { TransactionFilterDto } from './dto/get-transactions.dto';
+import { TransactionFilterDto } from './dto/transaction-filter.dto';
+import { StatsFilterDto } from './dto/stats-filter.dto';
 import { WalletService } from '../wallet/wallet.service';
+import { CategoryService } from '../category/category.service';
+import { KyselyService } from '../kysely/kysely.service';
+import { createId } from '@paralleldrive/cuid2';
 
 @Injectable()
 export class TransactionService {
-  DEFAULT_PAGE_SIZE = 100;
-  MAX_PAGE_SIZE = 1000;
+  private readonly DEFAULT_PAGE_SIZE = 100;
+  private readonly MAX_PAGE_SIZE = 1000;
+  private readonly ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
   constructor(
-    private prisma: PrismaService,
+    private kysely: KyselyService,
     private walletService: WalletService,
+    private categoryService: CategoryService,
   ) {}
 
-  async getAllTransactions(filters: TransactionFilterDto) {
-    if (filters.from && filters.to) {
-      if (new Date(filters.from) > new Date(filters.to)) {
-        throw new BadRequestException('from must be <= to');
-      }
-    }
+  private signAmount(type: TransactionType, amountInCents: number): number {
+    return type === TransactionType.EXPENSE ? -amountInCents : amountInCents;
+  }
 
-    const page = filters.page ?? 1;
-    const length = Math.min(
-      filters.length ?? this.DEFAULT_PAGE_SIZE,
+  async getTransactions(query: TransactionFilterDto) {
+    const page = query.page ?? 1;
+    const pageSize = Math.min(
+      query.pageSize ?? this.DEFAULT_PAGE_SIZE,
       this.MAX_PAGE_SIZE,
     );
 
-    return await this.prisma.transaction.findMany({
-      orderBy: {
-        date: 'desc',
-      },
-      where: {
-        ...(filters.categoryId && { categoryId: filters.categoryId }),
-        ...(filters.walletId && { walletId: filters.walletId }),
-        ...(filters.transactionType && {
-          category: {
-            is: {
-              type: filters.transactionType,
-            },
-          },
-        }),
-        ...((filters.from || filters.to) && {
-          date: {
-            ...(filters.from && { gte: new Date(filters.from) }),
-            ...(filters.to && { lte: new Date(filters.to + 'T23:59:59.999Z') }),
-          },
-        }),
-      },
-      skip: (page - 1) * length,
-      take: length,
-    });
+    return await this.kysely
+      .selectFrom('Transaction')
+      .innerJoin('Category', 'Category.id', 'Transaction.categoryId')
+      .selectAll('Transaction')
+      .$if(!!query.categoryId, (qb) =>
+        qb.where('Transaction.categoryId', '=', query.categoryId!),
+      )
+      .$if(!!query.walletId, (qb) =>
+        qb.where('Transaction.walletId', '=', query.walletId!),
+      )
+      .$if(!!query.type, (qb) => qb.where('Category.type', '=', query.type!))
+      .$if(!!query.from, (qb) =>
+        qb.where('Transaction.date', '>=', new Date(query.from!)),
+      )
+      .$if(!!query.to, (qb) =>
+        qb.where(
+          'Transaction.date',
+          '<=',
+          new Date(new Date(query.to!).getTime() + this.ONE_DAY_IN_MS),
+        ),
+      )
+      .orderBy('Transaction.date', 'desc')
+      .orderBy('Transaction.id', 'desc')
+      .limit(pageSize)
+      .offset((page - 1) * pageSize)
+      .execute();
   }
 
-  async getTransactionById(transactionId: string): Promise<Transaction> {
-    const transaction = await this.prisma.transaction.findUnique({
-      where: { id: transactionId },
-      include: { category: true },
-    });
+  async getTransactionById(
+    transactionId: string,
+  ): Promise<Transaction & { category: Category }> {
+    const transaction = await this.kysely
+      .selectFrom('Transaction')
+      .selectAll()
+      .where('id', '=', transactionId)
+      .executeTakeFirst();
 
     if (!transaction) {
       throw new NotFoundException(
@@ -70,67 +78,72 @@ export class TransactionService {
       );
     }
 
-    return transaction;
+    const category = await this.categoryService.findCategoryOrThrow(
+      transaction.categoryId,
+    );
+
+    return { ...transaction, category };
   }
 
-  async createNewTransaction(dto: CreateTransactionDto): Promise<Transaction> {
-    return await this.prisma.$transaction(
-      async (tx) => {
-        const wallet = await tx.wallet.findUnique({
-          where: { id: dto.walletId },
-        });
+  async createTransaction(dto: CreateTransactionDto): Promise<Transaction> {
+    return await this.kysely
+      .transaction()
+      .setIsolationLevel('serializable')
+      .execute(async (tx) => {
+        await this.walletService.findWalletOrThrow(dto.walletId, tx);
 
-        if (!wallet) {
-          throw new NotFoundException(
-            `The wallet with id ${dto.walletId} not found`,
-          );
+        if (this.categoryService.isReserved(dto.categoryId)) {
+          throw new BadRequestException('categoryId must be a valid id');
         }
 
-        const category = await tx.category.findUnique({
-          where: { id: dto.categoryId },
-        });
-
-        if (!category) {
-          throw new NotFoundException(
-            `The category with id ${dto.categoryId} not found`,
-          );
-        }
-
-        const balanceDelta = new Prisma.Decimal(
-          category.type === TransactionType.EXPENSE ? -dto.amount : dto.amount,
+        const category = await this.categoryService.findCategoryOrThrow(
+          dto.categoryId,
+          tx,
         );
 
-        this.walletService.validateSufficientFunds(wallet, balanceDelta);
+        const signedAmountInCents = this.signAmount(
+          category.type,
+          dto.amountInCents,
+        );
 
-        await tx.wallet.update({
-          where: { id: dto.walletId },
-          data: { balance: { increment: balanceDelta } },
-        });
+        const now = new Date();
 
-        const date = dto.date ? new Date(dto.date) : new Date();
+        await this.walletService.updateBalance(
+          dto.walletId,
+          signedAmountInCents,
+          tx,
+          now,
+        );
 
-        return await tx.transaction.create({
-          data: {
-            amount: dto.amount,
+        return await tx
+          .insertInto('Transaction')
+          .values({
+            id: createId(),
+            amountInCents: signedAmountInCents,
             description: dto.description,
-            date: date,
+            ...(dto.date && { date: new Date(dto.date) }),
             walletId: dto.walletId,
             categoryId: dto.categoryId,
-          },
-        });
-      },
-      { isolationLevel: 'Serializable' },
-    );
+            updatedAt: now,
+          })
+          .returningAll()
+          .executeTakeFirstOrThrow();
+      });
   }
 
-  async updateTransaction(transactionId: string, dto: UpdateTransactionDto) {
-    return await this.prisma.$transaction(
-      async (tx) => {
-        const oldTransaction = await tx.transaction.findUnique({
-          where: {
-            id: transactionId,
-          },
-        });
+  async updateTransaction(
+    transactionId: string,
+    dto: UpdateTransactionDto,
+  ): Promise<Transaction> {
+    return await this.kysely
+      .transaction()
+      .setIsolationLevel('serializable')
+      .execute(async (tx) => {
+        const oldTransaction = await tx
+          .selectFrom('Transaction')
+          .selectAll()
+          .where('id', '=', transactionId)
+          .executeTakeFirst();
 
         if (!oldTransaction) {
           throw new NotFoundException(
@@ -138,80 +151,119 @@ export class TransactionService {
           );
         }
 
-        const category = await tx.category.findUnique({
-          where: { id: dto.categoryId },
-        });
-
-        if (!category) {
-          throw new NotFoundException(
-            `The category with id ${dto.categoryId} not found`,
+        if (oldTransaction.transferGroupId) {
+          throw new BadRequestException(
+            'Use the /transfer endpoints to modify transfer records',
           );
         }
 
-        const oldCategory = await tx.category.findUnique({
-          where: {
-            id: oldTransaction.categoryId,
-          },
-        });
+        const categoryId = dto.categoryId ?? oldTransaction.categoryId;
 
-        if (!oldCategory) {
-          throw new NotFoundException(
-            `The category to which this transaction belongs cannot be found`,
-          );
+        if (this.categoryService.isReserved(categoryId)) {
+          throw new BadRequestException('categoryId must be a valid id');
         }
 
-        const wallet = await tx.wallet.findUnique({
-          where: {
-            id: oldTransaction.walletId,
-          },
-        });
+        const category = await this.categoryService.findCategoryOrThrow(
+          categoryId,
+          tx,
+        );
 
-        if (!wallet) {
-          throw new NotFoundException(
-            `The wallet to which this transaction belongs cannot be found`,
-          );
-        }
+        const rawAmountInCents =
+          dto.amountInCents ?? Math.abs(oldTransaction.amountInCents);
 
-        const oldEffect =
-          oldCategory.type === TransactionType.EXPENSE
-            ? oldTransaction.amount
-            : oldTransaction.amount.neg();
+        const newSignedAmountInCents = this.signAmount(
+          category.type,
+          rawAmountInCents,
+        );
 
-        const newEffect =
-          category.type === TransactionType.EXPENSE
-            ? new Prisma.Decimal(dto.amount).neg()
-            : new Prisma.Decimal(dto.amount);
+        const balanceDelta =
+          newSignedAmountInCents - oldTransaction.amountInCents;
 
-        const balanceDelta = oldEffect.plus(newEffect);
-        this.walletService.validateSufficientFunds(wallet, balanceDelta);
+        const now = new Date();
 
-        await tx.wallet.update({
-          where: { id: oldTransaction.walletId },
-          data: { balance: { increment: balanceDelta } },
-        });
+        await this.walletService.updateBalance(
+          oldTransaction.walletId,
+          balanceDelta,
+          tx,
+          now,
+        );
 
-        return await tx.transaction.update({
-          where: { id: transactionId },
-          data: {
-            amount: dto.amount,
-            description: dto.description,
-            date: dto.date ? new Date(dto.date) : undefined,
-            categoryId: dto.categoryId,
-          },
-        });
-      },
-      {
-        isolationLevel: 'Serializable',
-      },
+        return await tx
+          .updateTable('Transaction')
+          .set({
+            amountInCents: newSignedAmountInCents,
+            updatedAt: now,
+            ...(dto.description !== undefined && {
+              description: dto.description,
+            }),
+            ...(dto.date !== undefined && { date: new Date(dto.date) }),
+            ...(dto.categoryId !== undefined && {
+              categoryId: dto.categoryId,
+            }),
+          })
+          .where('id', '=', transactionId)
+          .returningAll()
+          .executeTakeFirstOrThrow();
+      });
+  }
+
+  async getStats(query: StatsFilterDto) {
+    await this.walletService.findWalletOrThrow(query.walletId);
+
+    const grouped = await this.kysely
+      .selectFrom('Transaction')
+      .select([
+        'categoryId',
+        (eb) => eb.fn.sum<string>('amountInCents').as('totalAmountInCents'),
+      ])
+      .where('walletId', '=', query.walletId)
+      .where('transferGroupId', 'is', null)
+      .$if(!!query.from, (qb) => qb.where('date', '>=', new Date(query.from!)))
+      .$if(!!query.to, (qb) =>
+        qb.where(
+          'date',
+          '<=',
+          new Date(new Date(query.to!).getTime() + this.ONE_DAY_IN_MS),
+        ),
+      )
+      .groupBy('categoryId')
+      .execute();
+
+    const categories = await this.kysely
+      .selectFrom('Category')
+      .selectAll()
+      .where(
+        'id',
+        'in',
+        grouped.map((group) => group.categoryId),
+      )
+      .execute();
+
+    const categoryById = new Map(
+      categories.map((category) => [category.id, category]),
     );
+
+    return grouped.map((group) => {
+      const category = categoryById.get(group.categoryId)!;
+
+      return {
+        name: category.name,
+        type: category.type,
+        totalAmountInCents: Math.abs(Number(group.totalAmountInCents ?? 0)),
+      };
+    });
   }
 
   async deleteTransaction(transactionId: string): Promise<Transaction> {
-    return await this.prisma.$transaction(
-      async (tx) => {
-        const transaction = await tx.transaction.findUnique({
-          where: { id: transactionId },
-        });
+    return await this.kysely
+      .transaction()
+      .setIsolationLevel('serializable')
+      .execute(async (tx) => {
+        const transaction = await tx
+          .selectFrom('Transaction')
+          .selectAll()
+          .where('id', '=', transactionId)
+          .executeTakeFirst();
 
         if (!transaction) {
           throw new NotFoundException(
@@ -219,34 +271,23 @@ export class TransactionService {
           );
         }
 
-        const category = await tx.category.findUnique({
-          where: { id: transaction.categoryId },
-        });
-
-        const wallet = await tx.wallet.findUnique({
-          where: { id: transaction.walletId },
-        });
-
-        if (category && wallet) {
-          const balanceDelta = new Prisma.Decimal(
-            category.type === TransactionType.EXPENSE
-              ? transaction.amount
-              : transaction.amount.neg(),
+        if (transaction.transferGroupId) {
+          throw new BadRequestException(
+            'Use the /transfer endpoints to modify transfer records',
           );
-
-          this.walletService.validateSufficientFunds(wallet, balanceDelta);
-
-          await tx.wallet.update({
-            where: { id: transaction.walletId },
-            data: { balance: { increment: balanceDelta } },
-          });
         }
 
-        return await tx.transaction.delete({
-          where: { id: transaction.id },
-        });
-      },
-      { isolationLevel: 'Serializable' },
-    );
+        await this.walletService.updateBalance(
+          transaction.walletId,
+          -transaction.amountInCents,
+          tx,
+        );
+
+        return await tx
+          .deleteFrom('Transaction')
+          .where('id', '=', transaction.id)
+          .returningAll()
+          .executeTakeFirstOrThrow();
+      });
   }
 }

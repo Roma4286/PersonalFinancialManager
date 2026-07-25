@@ -1,37 +1,61 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { Prisma, Wallet } from '@prisma/client';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { Wallet } from '@prisma/client';
+import { KyselyService } from '../kysely/kysely.service';
+import { Kysely } from 'kysely';
+import { DB } from '@/db/types';
 
 @Injectable()
 export class WalletService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private kysely: KyselyService) {}
 
   async getAllWallets(): Promise<Wallet[]> {
-    return await this.prisma.wallet.findMany();
+    return await this.kysely.selectFrom('Wallet').selectAll().execute();
   }
 
-  async getBalance(walletId: string): Promise<string> {
-    const wallet = await this.prisma.wallet.findUnique({
-      where: { id: walletId },
-      select: {
-        balance: true,
-      },
-    });
+  async getBalance(walletId: string): Promise<number> {
+    const wallet = await this.kysely
+      .selectFrom('Wallet')
+      .select(['balanceInCents'])
+      .where('id', '=', walletId)
+      .executeTakeFirst();
 
     if (!wallet) {
       throw new NotFoundException(`The wallet with id ${walletId} not found`);
     }
 
-    return String(wallet.balance);
+    return wallet.balanceInCents;
   }
 
-  validateSufficientFunds(wallet: Wallet, amount: Prisma.Decimal) {
-    if (wallet.balance.plus(amount).isNegative()) {
-      throw new BadRequestException('Insufficient funds');
+  async findWalletOrThrow(
+    walletId: string,
+    tx: Kysely<DB> = this.kysely,
+  ): Promise<Wallet> {
+    const wallet = await tx
+      .selectFrom('Wallet')
+      .selectAll()
+      .where('id', '=', walletId)
+      .executeTakeFirst();
+
+    if (!wallet) {
+      throw new NotFoundException(`The wallet with id ${walletId} not found`);
     }
+
+    return wallet;
+  }
+
+  async updateBalance(
+    walletId: string,
+    deltaInCents: number,
+    tx: Kysely<DB> = this.kysely,
+    updatedAt: Date = new Date(),
+  ): Promise<void> {
+    await tx
+      .updateTable('Wallet')
+      .set((eb) => ({
+        balanceInCents: eb('balanceInCents', '+', deltaInCents),
+        updatedAt,
+      }))
+      .where('id', '=', walletId)
+      .execute();
   }
 }

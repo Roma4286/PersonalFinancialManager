@@ -1,26 +1,6 @@
-import {
-  IsDateString,
-  IsNumber,
-  IsOptional,
-  IsPositive,
-  IsString,
-  MaxLength,
-} from 'class-validator';
+import { OmitType, PartialType } from '@nestjs/swagger';
+import { CreateTransactionDto } from './create-transaction.dto';
 
-export class UpdateTransactionDto {
-  @IsNumber()
-  @IsPositive({ message: 'Amount must be > 0' })
-  readonly amount!: number;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  readonly description?: string;
-
-  @IsOptional()
-  @IsDateString()
-  readonly date?: string;
-
-  @IsString()
-  readonly categoryId!: string;
-}
+export class UpdateTransactionDto extends PartialType(
+  OmitType(CreateTransactionDto, ['walletId'] as const),
+) {}

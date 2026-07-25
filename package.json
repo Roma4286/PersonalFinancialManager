@@ -2,14 +2,18 @@
   "name": "personalfinancialmanager",
   "version": "1.0.0",
   "scripts": {
-    "build": "nest build",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "format": "npx prettier --write src/**",
     "lint": "npx eslint . ",
     "lint:fix": "npx eslint . --fix",
-    "docker:start": "docker-compose up -d",
-    "docker:stop": "docker-compose down -v"
+    "db:wait": "tsx prisma/wait-for-db.ts",
+    "db:migrate": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
+    "db:generate": "prisma generate && npx prettier --write src/db/types.ts",
+    "setup": "npm run db:migrate && npm run db:seed && npm run db:generate",
+    "build": "npm run db:generate && nest build"
+
   },
   "keywords": [],
   "author": "",
@@ -19,11 +23,14 @@
     "@eslint/js": "^9.39.3",
     "@nestjs/cli": "^11.0.16",
     "@types/node": "^25.3.0",
+    "@types/pg": "8.11.11",
     "eslint": "^10.0.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
     "globals": "^17.4.0",
     "prettier": "^3.8.1",
+    "prisma-kysely": "^2.3.0",
+    "tsx": "^4.22.5",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.56.1"
   },
@@ -33,16 +40,15 @@
     "@nestjs/core": "^11.1.18",
     "@nestjs/platform-express": "^11.1.18",
     "@nestjs/swagger": "^11.0.0",
-    "@prisma/adapter-pg": "^7.5.0",
+    "@paralleldrive/cuid2": "^3.3.0",
     "@prisma/client": "^6.19.2",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "dotenv": "^17.3.1",
+    "kysely": "^0.28.17",
+    "pg": "^8.16.3",
     "prisma": "^6.19.2",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
-  },
-  "overrides": {
-    "@types/pg": "8.11.11"
   }
 }

@@ -1,18 +1,19 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, SerializeOptions } from '@nestjs/common';
 import { ApiResponse } from '@nestjs/swagger';
 import { WalletService } from './wallet.service';
-import { BalanceResponse, Wallet } from './dto/response-wallet.dto';
-import { GetBalanceDto } from './dto/get-balance.dto';
+import { BalanceResponse, WalletResponse } from './dto/wallet-response.dto';
+import { IdParamDto } from '@/common/dto/id-param.dto';
 
 @Controller('/wallets')
 export class WalletController {
   constructor(private walletService: WalletService) {}
 
   @Get('/')
+  @SerializeOptions({ type: WalletResponse, excludeExtraneousValues: true })
   @ApiResponse({
     status: 200,
     description: 'Retrieve all items.',
-    type: Wallet,
+    type: WalletResponse,
     isArray: true,
   })
   async getAllWallets() {
@@ -20,15 +21,15 @@ export class WalletController {
   }
 
   @Get('/:id/balance')
+  @SerializeOptions({ type: BalanceResponse, excludeExtraneousValues: true })
   @ApiResponse({
     status: 200,
     description: 'Financial Summary.',
     type: BalanceResponse,
   })
-  @ApiResponse({ status: 404, description: 'Invalid wallet Id.' })
-  async getBalance(@Param() params: GetBalanceDto) {
-    return {
-      totalBalance: await this.walletService.getBalance(params.id),
-    };
+  @ApiResponse({ status: 404, description: 'Id not found.' })
+  async getBalance(@Param() { id: walletId }: IdParamDto) {
+    const totalBalanceInCents = await this.walletService.getBalance(walletId);
+    return { totalBalanceInCents };
   }
 }
