@@ -229,6 +229,10 @@ export class TransactionService {
       .groupBy('categoryId')
       .execute();
 
+    if (grouped.length === 0) {
+      return [];
+    }
+
     const categories = await this.kysely
       .selectFrom('Category')
       .selectAll()
