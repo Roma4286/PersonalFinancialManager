@@ -52,7 +52,7 @@ export class TransactionService {
       .$if(!!query.to, (qb) =>
         qb.where(
           'Transaction.date',
-          '<=',
+          '<',
           new Date(new Date(query.to!).getTime() + this.ONE_DAY_IN_MS),
         ),
       )
@@ -222,7 +222,7 @@ export class TransactionService {
       .$if(!!query.to, (qb) =>
         qb.where(
           'date',
-          '<=',
+          '<',
           new Date(new Date(query.to!).getTime() + this.ONE_DAY_IN_MS),
         ),
       )
