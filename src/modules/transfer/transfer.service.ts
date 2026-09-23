@@ -153,10 +153,8 @@ export class TransferService {
     const date = dto.date ? new Date(dto.date) : undefined;
     const transferGroupId = createId();
 
-    const transactions = await this.kysely
-      .transaction()
-      .setIsolationLevel('serializable')
-      .execute(async (tx) => {
+    const transactions = await this.kysely.serializableTransaction(
+      async (tx) => {
         const now = new Date();
 
         await Promise.all([
@@ -203,16 +201,15 @@ export class TransferService {
           .selectAll()
           .where('transferGroupId', '=', transferGroupId)
           .execute();
-      });
+      },
+    );
 
     return { transferGroupId, transactions };
   }
 
   async updateTransfer(transferGroupId: string, dto: UpdateTransferDto) {
-    const transactions = await this.kysely
-      .transaction()
-      .setIsolationLevel('serializable')
-      .execute(async (tx) => {
+    const transactions = await this.kysely.serializableTransaction(
+      async (tx) => {
         const now = new Date();
         const legs = await this.loadTransferLegs(tx, transferGroupId);
 
@@ -284,34 +281,32 @@ export class TransferService {
           .selectAll()
           .where('transferGroupId', '=', transferGroupId)
           .execute();
-      });
+      },
+    );
 
     return { transferGroupId, transactions };
   }
 
   async deleteTransfer(transferGroupId: string) {
-    await this.kysely
-      .transaction()
-      .setIsolationLevel('serializable')
-      .execute(async (tx) => {
-        const now = new Date();
-        const legs = await this.loadTransferLegs(tx, transferGroupId);
+    await this.kysely.serializableTransaction(async (tx) => {
+      const now = new Date();
+      const legs = await this.loadTransferLegs(tx, transferGroupId);
 
-        for (const leg of legs) {
-          const reversalDelta = -leg.amountInCents;
+      for (const leg of legs) {
+        const reversalDelta = -leg.amountInCents;
 
-          await this.walletService.updateBalance(
-            leg.walletId,
-            reversalDelta,
-            tx,
-            now,
-          );
-        }
+        await this.walletService.updateBalance(
+          leg.walletId,
+          reversalDelta,
+          tx,
+          now,
+        );
+      }
 
-        await tx
-          .deleteFrom('Transaction')
-          .where('transferGroupId', '=', transferGroupId)
-          .execute();
-      });
+      await tx
+        .deleteFrom('Transaction')
+        .where('transferGroupId', '=', transferGroupId)
+        .execute();
+    });
   }
 }

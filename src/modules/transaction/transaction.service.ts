@@ -86,125 +86,119 @@ export class TransactionService {
   }
 
   async createTransaction(dto: CreateTransactionDto): Promise<Transaction> {
-    return await this.kysely
-      .transaction()
-      .setIsolationLevel('serializable')
-      .execute(async (tx) => {
-        await this.walletService.findWalletOrThrow(dto.walletId, tx);
+    return await this.kysely.serializableTransaction(async (tx) => {
+      await this.walletService.findWalletOrThrow(dto.walletId, tx);
 
-        if (this.categoryService.isReserved(dto.categoryId)) {
-          throw new BadRequestException('categoryId must be a valid id');
-        }
+      if (this.categoryService.isReserved(dto.categoryId)) {
+        throw new BadRequestException('categoryId must be a valid id');
+      }
 
-        const category = await this.categoryService.findCategoryOrThrow(
-          dto.categoryId,
-          tx,
-        );
+      const category = await this.categoryService.findCategoryOrThrow(
+        dto.categoryId,
+        tx,
+      );
 
-        const signedAmountInCents = this.signAmount(
-          category.type,
-          dto.amountInCents,
-        );
+      const signedAmountInCents = this.signAmount(
+        category.type,
+        dto.amountInCents,
+      );
 
-        const now = new Date();
+      const now = new Date();
 
-        await this.walletService.updateBalance(
-          dto.walletId,
-          signedAmountInCents,
-          tx,
-          now,
-        );
+      await this.walletService.updateBalance(
+        dto.walletId,
+        signedAmountInCents,
+        tx,
+        now,
+      );
 
-        return await tx
-          .insertInto('Transaction')
-          .values({
-            id: createId(),
-            amountInCents: signedAmountInCents,
-            description: dto.description,
-            ...(dto.date && { date: new Date(dto.date) }),
-            walletId: dto.walletId,
-            categoryId: dto.categoryId,
-            updatedAt: now,
-          })
-          .returningAll()
-          .executeTakeFirstOrThrow();
-      });
+      return await tx
+        .insertInto('Transaction')
+        .values({
+          id: createId(),
+          amountInCents: signedAmountInCents,
+          description: dto.description,
+          ...(dto.date && { date: new Date(dto.date) }),
+          walletId: dto.walletId,
+          categoryId: dto.categoryId,
+          updatedAt: now,
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+    });
   }
 
   async updateTransaction(
     transactionId: string,
     dto: UpdateTransactionDto,
   ): Promise<Transaction> {
-    return await this.kysely
-      .transaction()
-      .setIsolationLevel('serializable')
-      .execute(async (tx) => {
-        const oldTransaction = await tx
-          .selectFrom('Transaction')
-          .selectAll()
-          .where('id', '=', transactionId)
-          .executeTakeFirst();
+    return await this.kysely.serializableTransaction(async (tx) => {
+      const oldTransaction = await tx
+        .selectFrom('Transaction')
+        .selectAll()
+        .where('id', '=', transactionId)
+        .executeTakeFirst();
 
-        if (!oldTransaction) {
-          throw new NotFoundException(
-            `The transaction with id ${transactionId} not found`,
-          );
-        }
-
-        if (oldTransaction.transferGroupId) {
-          throw new BadRequestException(
-            'Use the /transfer endpoints to modify transfer records',
-          );
-        }
-
-        const categoryId = dto.categoryId ?? oldTransaction.categoryId;
-
-        if (this.categoryService.isReserved(categoryId)) {
-          throw new BadRequestException('categoryId must be a valid id');
-        }
-
-        const category = await this.categoryService.findCategoryOrThrow(
-          categoryId,
-          tx,
+      if (!oldTransaction) {
+        throw new NotFoundException(
+          `The transaction with id ${transactionId} not found`,
         );
+      }
 
-        const rawAmountInCents =
-          dto.amountInCents ?? Math.abs(oldTransaction.amountInCents);
-
-        const newSignedAmountInCents = this.signAmount(
-          category.type,
-          rawAmountInCents,
+      if (oldTransaction.transferGroupId) {
+        throw new BadRequestException(
+          'Use the /transfer endpoints to modify transfer records',
         );
+      }
 
-        const balanceDelta =
-          newSignedAmountInCents - oldTransaction.amountInCents;
+      const categoryId = dto.categoryId ?? oldTransaction.categoryId;
 
-        const now = new Date();
+      if (this.categoryService.isReserved(categoryId)) {
+        throw new BadRequestException('categoryId must be a valid id');
+      }
 
-        await this.walletService.updateBalance(
-          oldTransaction.walletId,
-          balanceDelta,
-          tx,
-          now,
-        );
+      const category = await this.categoryService.findCategoryOrThrow(
+        categoryId,
+        tx,
+      );
 
-        return await tx
-          .updateTable('Transaction')
-          .set({
-            amountInCents: newSignedAmountInCents,
-            updatedAt: now,
-            ...(dto.description !== undefined && {
-              description: dto.description,
-            }),
-            ...(dto.date !== undefined && { date: new Date(dto.date) }),
-            ...(dto.categoryId !== undefined && {
-              categoryId: dto.categoryId,
-            }),
-          })
-          .where('id', '=', transactionId)
-          .returningAll()
-          .executeTakeFirstOrThrow();
-      });
+      const rawAmountInCents =
+        dto.amountInCents ?? Math.abs(oldTransaction.amountInCents);
+
+      const newSignedAmountInCents = this.signAmount(
+        category.type,
+        rawAmountInCents,
+      );
+
+      const balanceDelta =
+        newSignedAmountInCents - oldTransaction.amountInCents;
+
+      const now = new Date();
+
+      await this.walletService.updateBalance(
+        oldTransaction.walletId,
+        balanceDelta,
+        tx,
+        now,
+      );
+
+      return await tx
+        .updateTable('Transaction')
+        .set({
+          amountInCents: newSignedAmountInCents,
+          updatedAt: now,
+          ...(dto.description !== undefined && {
+            description: dto.description,
+          }),
+          ...(dto.date !== undefined && { date: new Date(dto.date) }),
+          ...(dto.categoryId !== undefined && {
+            categoryId: dto.categoryId,
+          }),
+        })
+        .where('id', '=', transactionId)
+        .returningAll()
+        .executeTakeFirstOrThrow();
+    });
   }
 
   async getStats(query: StatsFilterDto) {
@@ -259,39 +253,36 @@ export class TransactionService {
   }
 
   async deleteTransaction(transactionId: string): Promise<Transaction> {
-    return await this.kysely
-      .transaction()
-      .setIsolationLevel('serializable')
-      .execute(async (tx) => {
-        const transaction = await tx
-          .selectFrom('Transaction')
-          .selectAll()
-          .where('id', '=', transactionId)
-          .executeTakeFirst();
+    return await this.kysely.serializableTransaction(async (tx) => {
+      const transaction = await tx
+        .selectFrom('Transaction')
+        .selectAll()
+        .where('id', '=', transactionId)
+        .executeTakeFirst();
 
-        if (!transaction) {
-          throw new NotFoundException(
-            `The transaction with id ${transactionId} not found`,
-          );
-        }
-
-        if (transaction.transferGroupId) {
-          throw new BadRequestException(
-            'Use the /transfer endpoints to modify transfer records',
-          );
-        }
-
-        await this.walletService.updateBalance(
-          transaction.walletId,
-          -transaction.amountInCents,
-          tx,
+      if (!transaction) {
+        throw new NotFoundException(
+          `The transaction with id ${transactionId} not found`,
         );
+      }
 
-        return await tx
-          .deleteFrom('Transaction')
-          .where('id', '=', transaction.id)
-          .returningAll()
-          .executeTakeFirstOrThrow();
-      });
+      if (transaction.transferGroupId) {
+        throw new BadRequestException(
+          'Use the /transfer endpoints to modify transfer records',
+        );
+      }
+
+      await this.walletService.updateBalance(
+        transaction.walletId,
+        -transaction.amountInCents,
+        tx,
+      );
+
+      return await tx
+        .deleteFrom('Transaction')
+        .where('id', '=', transaction.id)
+        .returningAll()
+        .executeTakeFirstOrThrow();
+    });
   }
 }
