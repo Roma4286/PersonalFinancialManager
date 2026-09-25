@@ -12,8 +12,20 @@
     "db:seed": "prisma db seed",
     "db:generate": "prisma generate && npx prettier --write src/db/types.ts",
     "setup": "npm run db:migrate && npm run db:seed && npm run db:generate",
-    "build": "npm run db:generate && nest build"
-
+    "build": "npm run db:generate && nest build",
+    "test": "node --experimental-vm-modules --disable-warning=ExperimentalWarning node_modules/jest/bin/jest.js"
+  },
+  "jest": {
+    "rootDir": "src",
+    "moduleFileExtensions": ["js", "json", "ts"],
+    "testEnvironment": "node",
+    "testRegex": ".*\\.spec\\.ts$",
+    "transform": {
+      "^.+\\.ts$": ["ts-jest", { "tsconfig": "<rootDir>/../tsconfig.json" }]
+    },
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/$1"
+    }
   },
   "keywords": [],
   "author": "",
@@ -22,14 +34,20 @@
   "devDependencies": {
     "@eslint/js": "^9.39.3",
     "@nestjs/cli": "^11.0.16",
+    "@nestjs/testing": "^11.2.6",
+    "@types/jest": "^30.0.0",
     "@types/node": "^25.3.0",
     "@types/pg": "8.11.11",
+    "@types/supertest": "^7.2.1",
     "eslint": "^10.0.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
     "globals": "^17.4.0",
+    "jest": "^30.5.2",
     "prettier": "^3.8.1",
     "prisma-kysely": "^2.3.0",
+    "supertest": "^7.3.0",
+    "ts-jest": "^29.4.13",
     "tsx": "^4.22.5",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.56.1"

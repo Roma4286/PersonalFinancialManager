@@ -6,5 +6,6 @@
     "sourceMap": true,
     "incremental": true
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  "exclude": ["**/*.spec.ts"]
 }
