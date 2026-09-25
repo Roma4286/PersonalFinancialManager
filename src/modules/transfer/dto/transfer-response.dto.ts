@@ -11,7 +11,7 @@ export class TransferResponse {
   readonly transactions!: TransactionResponse[];
 }
 
-export class AllTransferRespons {
+export class AllTransferResponse {
   @Expose() readonly transferGroupId!: string;
   @Expose() readonly fromWalletId!: string;
   @Expose() readonly fromWalletName!: string;
