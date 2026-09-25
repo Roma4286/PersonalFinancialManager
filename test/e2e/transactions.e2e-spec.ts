@@ -398,7 +398,7 @@ describe('Transactions (e2e)', () => {
         await db
           .insertInto('Transaction')
           .values(
-            Array.from({  length: count }, (_, i) => ({
+            Array.from({ length: count }, (_, i) => ({
               id: createId(),
               amountInCents: -100,
               walletId: wallet.id,

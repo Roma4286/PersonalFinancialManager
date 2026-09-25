@@ -4,7 +4,7 @@
   "scripts": {
     "start": "nest start",
     "start:dev": "nest start --watch",
-    "format": "npx prettier --write src/**",
+    "format": "npx prettier --write src test",
     "lint": "npx eslint . ",
     "lint:fix": "npx eslint . --fix",
     "db:wait": "tsx prisma/wait-for-db.ts",
