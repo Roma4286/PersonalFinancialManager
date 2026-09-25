@@ -1,8 +1,5 @@
 import { INestApplication } from '@nestjs/common';
-import { createId } from '@paralleldrive/cuid2';
-import { Wallet } from '@prisma/client';
 import request from 'supertest';
-import { KyselyService } from '@/modules/kysely/kysely.service';
 
 export interface TransactionBody {
   id: string;
@@ -19,22 +16,6 @@ export interface TransactionBody {
 export interface TransferBody {
   transferGroupId: string;
   transactions: TransactionBody[];
-}
-
-export async function createWallet(
-  db: KyselyService,
-  overrides: { name?: string; balanceInCents?: number } = {},
-): Promise<Wallet> {
-  return await db
-    .insertInto('Wallet')
-    .values({
-      id: createId(),
-      name: overrides.name ?? `Wallet ${createId()}`,
-      balanceInCents: overrides.balanceInCents ?? 0,
-      updatedAt: new Date(),
-    })
-    .returningAll()
-    .executeTakeFirstOrThrow();
 }
 
 export async function createTransaction(

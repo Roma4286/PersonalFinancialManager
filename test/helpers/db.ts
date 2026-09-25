@@ -1,9 +1,46 @@
-import { Category, TransactionType } from '@prisma/client';
+import { Category, TransactionType, Wallet } from '@prisma/client';
 import { sql } from 'kysely';
 import { KyselyService } from '@/modules/kysely/kysely.service';
 
 export async function resetDb(db: KyselyService): Promise<void> {
-  await sql`TRUNCATE "Transaction", "Wallet" CASCADE`.execute(db);
+  await sql`TRUNCATE "Transaction"`.execute(db);
+  await db.updateTable('Wallet').set({ balanceInCents: 0 }).execute();
+}
+
+export interface TestWallets {
+  wallet: Wallet;
+  card: Wallet;
+}
+
+export async function loadWallets(db: KyselyService): Promise<TestWallets> {
+  const wallets = await db.selectFrom('Wallet').selectAll().execute();
+
+  const find = (name: string) => {
+    const wallet = wallets.find((item) => item.name === name);
+
+    if (!wallet) {
+      throw new Error(`Seed wallet ${name} not found`);
+    }
+
+    return wallet;
+  };
+
+  return {
+    wallet: find('Wallet'),
+    card: find('Card'),
+  };
+}
+
+export async function setWalletBalance(
+  db: KyselyService,
+  walletId: string,
+  balanceInCents: number,
+): Promise<void> {
+  await db
+    .updateTable('Wallet')
+    .set({ balanceInCents })
+    .where('id', '=', walletId)
+    .execute();
 }
 
 export interface TestCategories {
