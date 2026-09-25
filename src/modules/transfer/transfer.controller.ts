@@ -16,7 +16,7 @@ import { CreateTransferDto } from './dto/create-transfer.dto';
 import { TransferGroupIdParamDto } from './dto/transfer-group-id-param.dto';
 import { UpdateTransferDto } from './dto/update-transfer.dto';
 import {
-  AllTransferRespons,
+  AllTransferResponse,
   TransferResponse,
 } from './dto/transfer-response.dto';
 
@@ -25,11 +25,14 @@ export class TransferController {
   constructor(private transferService: TransferService) {}
 
   @Get('/')
-  @SerializeOptions({ type: AllTransferRespons, excludeExtraneousValues: true })
+  @SerializeOptions({
+    type: AllTransferResponse,
+    excludeExtraneousValues: true,
+  })
   @ApiResponse({
     status: 200,
     description: 'Retrieve all transfers',
-    type: AllTransferRespons,
+    type: AllTransferResponse,
     isArray: true,
   })
   async getAllTransfers() {

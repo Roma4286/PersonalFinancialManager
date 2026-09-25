@@ -14,15 +14,25 @@
     "setup": "npm run db:migrate && npm run db:seed && npm run db:generate",
     "build": "npm run db:generate && nest build",
     "test": "node --experimental-vm-modules --disable-warning=ExperimentalWarning node_modules/jest/bin/jest.js",
-    "test:e2e": "npm test -- --config test/jest-e2e.json --runInBand"
+    "test:e2e": "npm test -- --config test/jest-e2e.json --runInBand",
+    "prepare": "husky"
   },
   "jest": {
     "rootDir": "src",
-    "moduleFileExtensions": ["js", "json", "ts"],
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
     "testEnvironment": "node",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
-      "^.+\\.ts$": ["ts-jest", { "tsconfig": "<rootDir>/../tsconfig.json" }]
+      "^.+\\.ts$": [
+        "ts-jest",
+        {
+          "tsconfig": "<rootDir>/../tsconfig.json"
+        }
+      ]
     },
     "moduleNameMapper": {
       "^@/(.*)$": "<rootDir>/$1"
@@ -44,7 +54,9 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
     "globals": "^17.4.0",
+    "husky": "^9.1.7",
     "jest": "^30.5.2",
+    "lint-staged": "^17.5.1",
     "prettier": "^3.8.1",
     "prisma-kysely": "^2.3.0",
     "supertest": "^7.3.0",
@@ -69,5 +81,12 @@
     "prisma": "^6.19.2",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
+  },
+  "lint-staged": {
+    "*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml,mjs}": "prettier --write"
   }
 }
